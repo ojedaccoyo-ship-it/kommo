@@ -1,0 +1,5 @@
+/* Minimal styling to avoid conflicts */
+.app-wrapper {
+  width: 100%;
+  height: 100%;
+}
