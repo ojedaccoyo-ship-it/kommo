@@ -188,12 +188,72 @@ const initialAdCampaigns = [
 ];
 
 const initialAssets = [
-  { id: 'as-1', name: 'Logo Kommo ERP Turístico - Vector', type: 'Logos', product: 'city-tour', date: '2026-01-02', author: 'Diego Quispe', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200' },
-  { id: 'as-2', name: 'Foto Amanecer Machu Picchu Alta Res', type: 'Fotos', product: 'machu-picchu', date: '2026-05-12', author: 'Carlos Vega', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800' },
-  { id: 'as-3', name: 'Video Promocional Humantay Drone 4K', type: 'Videos', product: 'humantay', date: '2026-06-15', author: 'Carlos Vega', url: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800' },
-  { id: 'as-4', name: 'Plantilla de Stories - Promociones Especiales', type: 'Plantillas', product: 'city-tour', date: '2026-03-10', author: 'Diego Quispe', url: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800' },
-  { id: 'as-5', name: 'Diseño Gráfico - Mapa del Camino Inca Ilustrado', type: 'Diseños', product: 'camino-inca', date: '2026-06-11', author: 'Diego Quispe', url: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?w=800' },
-  { id: 'as-6', name: 'Banda Sonora Original Andina - Soundscape', type: 'Audios', product: 'valle-sagrado', date: '2026-02-15', author: 'Alejandro Ramos', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' }
+  { 
+    id: 'as-1', 
+    name: 'Logo Kommo ERP Turístico - Vector', 
+    type: 'Logos', 
+    product: 'city-tour', 
+    date: '2026-01-02', 
+    author: 'Diego Quispe', 
+    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200',
+    hypothesis: 'El logo limpio transmite modernidad y confianza técnica para agencias corporativas.',
+    targetSegment: 'Clientes Corporativos B2B / Agencias Afiliadas'
+  },
+  { 
+    id: 'as-2', 
+    name: 'Foto Amanecer Machu Picchu Alta Res', 
+    type: 'Fotos', 
+    product: 'machu-picchu', 
+    date: '2026-05-12', 
+    author: 'Carlos Vega', 
+    url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800',
+    hypothesis: 'Mostrar el santuario sin aglomeraciones a primera hora apela al deseo de exclusividad y paz.',
+    targetSegment: 'Viajeros de Lujo / Buscadores de Experiencias Premium'
+  },
+  { 
+    id: 'as-3', 
+    name: 'Video Promocional Humantay Drone 4K', 
+    type: 'Videos', 
+    product: 'humantay', 
+    date: '2026-06-15', 
+    author: 'Carlos Vega', 
+    url: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800',
+    hypothesis: 'La escala de la laguna turquesa vista desde arriba incrementa el CTR por su impacto visual y sensación de aventura.',
+    targetSegment: 'Jóvenes Aventureros / Mochileros / Amantes del Trekking'
+  },
+  { 
+    id: 'as-4', 
+    name: 'Plantilla de Stories - Promociones Especiales', 
+    type: 'Plantillas', 
+    product: 'city-tour', 
+    date: '2026-03-10', 
+    author: 'Diego Quispe', 
+    url: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800',
+    hypothesis: 'Diseño tipo "flash sale" con colores de alto contraste para fomentar la compra impulsiva rápida.',
+    targetSegment: 'Viajeros Locales / Compradores de Último Minuto'
+  },
+  { 
+    id: 'as-5', 
+    name: 'Diseño Gráfico - Mapa del Camino Inca Ilustrado', 
+    type: 'Diseños', 
+    product: 'camino-inca', 
+    date: '2026-06-11', 
+    author: 'Diego Quispe', 
+    url: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?w=800',
+    hypothesis: 'Los mapas ilustrativos ayudan a visualizar el recorrido diario, reduciendo la fricción informativa y la duda sobre el esfuerzo físico.',
+    targetSegment: 'Trekking Internacional / Adultos Activos 30-55 años'
+  },
+  { 
+    id: 'as-6', 
+    name: 'Banda Sonora Original Andina - Soundscape', 
+    type: 'Audios', 
+    product: 'valle-sagrado', 
+    date: '2026-02-15', 
+    author: 'Alejandro Ramos', 
+    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    hypothesis: 'El uso de instrumentos autóctonos como la quena y zampoña en reels genera una conexión emocional inmediata con la cultura andina.',
+    targetSegment: 'Turistas Culturales / Apasionados de la Antropología e Historia'
+  }
 ];
 
 export const MarketingProvider = ({ children }) => {

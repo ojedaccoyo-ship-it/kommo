@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
-import { Plus, Trash2, Search, FolderOpen, Image, Film, Palette, Volume2, Layout, Star } from 'lucide-react';
+import { Plus, Trash2, Search, FolderOpen, Image, Film, Palette, Volume2, Layout, Star, Database, Download } from 'lucide-react';
 
 const TYPE_ICONS = {
   Fotos: Image, Videos: Film, Diseños: Palette, Logos: Star, Audios: Volume2, Plantillas: Layout
@@ -16,7 +16,7 @@ export const ActivosDigitales = () => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', type: 'Fotos', product: '', date: new Date().toISOString().split('T')[0], author: '', url: '' });
+  const [form, setForm] = useState({ name: '', type: 'Fotos', product: '', date: new Date().toISOString().split('T')[0], author: '', url: '', hypothesis: '', targetSegment: '' });
 
   const filtered = assets.filter(a => {
     const matchProduct = filters.productId === 'all' || a.product === filters.productId;
@@ -25,6 +25,38 @@ export const ActivosDigitales = () => {
     return matchProduct && matchType && matchSearch;
   });
 
+  const exportDataset = (format) => {
+    let content = '';
+    let filename = `dataset_marketing_assets_${new Date().toISOString().split('T')[0]}`;
+    let mimeType = '';
+
+    if (format === 'json') {
+      content = JSON.stringify(assets, null, 2);
+      filename += '.json';
+      mimeType = 'application/json';
+    } else if (format === 'csv') {
+      const headers = ['id', 'name', 'type', 'product', 'date', 'author', 'url', 'hypothesis', 'targetSegment'];
+      const rows = assets.map(a => 
+        headers.map(header => {
+          let val = a[header] || '';
+          // Escape quotes for CSV
+          return `"${String(val).replace(/"/g, '""')}"`;
+        }).join(',')
+      );
+      content = [headers.join(','), ...rows].join('\n');
+      filename += '.csv';
+      mimeType = 'text/csv';
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = filename;
+    downloadLink.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     addAsset(form);
@@ -32,7 +64,7 @@ export const ActivosDigitales = () => {
   };
 
   const openAdd = () => {
-    setForm({ name: '', type: 'Fotos', product: products[0]?.id || '', date: new Date().toISOString().split('T')[0], author: collaborators[0]?.name || '', url: '' });
+    setForm({ name: '', type: 'Fotos', product: products[0]?.id || '', date: new Date().toISOString().split('T')[0], author: collaborators[0]?.name || '', url: '', hypothesis: '', targetSegment: '' });
     setIsModalOpen(true);
   };
 
@@ -88,8 +120,16 @@ export const ActivosDigitales = () => {
             style={{ paddingLeft: '2.25rem' }}
           />
         </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={() => exportDataset('csv')} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }} title="Exportar como CSV para análisis (Python/R/Excel)">
+            <Database size={14} /> Exportar CSV
+          </button>
+          <button onClick={() => exportDataset('json')} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }} title="Exportar como JSON para análisis">
+            <Download size={14} /> Exportar JSON
+          </button>
+        </div>
         <button onClick={openAdd} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
-          <Plus size={16} /> Subir Activo
+          <Plus size={16} /> Registrar Activo
         </button>
       </div>
 
@@ -141,7 +181,23 @@ export const ActivosDigitales = () => {
                     <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>{prod?.name || asset.product}</span>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{asset.date}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-light)', paddingTop: '0.5rem', marginTop: '0.1rem' }}>
+                  <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                    <strong>Segmento:</strong> {asset.targetSegment || 'General'}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.725rem', 
+                    color: 'var(--text-muted)', 
+                    fontStyle: 'italic',
+                    marginTop: '0.15rem',
+                    lineHeight: '1.3',
+                    display: '-webkit-box',
+                    WebkitLineClamp: '2',
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }} title={asset.hypothesis}>
+                    💡 {asset.hypothesis || 'Sin hipótesis de conversión'}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-light)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
                     <span style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>👤 {asset.author}</span>
                     <button onClick={() => deleteAsset(asset.id)} className="btn btn-danger btn-sm" style={{ padding: '0.25rem' }}>
                       <Trash2 size={11} />
@@ -198,10 +254,25 @@ export const ActivosDigitales = () => {
                   <label className="label">URL del Activo (Imagen / Archivo)</label>
                   <input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className="input" placeholder="https://images.unsplash.com/..." />
                 </div>
+                <div>
+                  <label className="label">Segmento de Mercado Objetivo</label>
+                  <input type="text" value={form.targetSegment} onChange={e => setForm({ ...form, targetSegment: e.target.value })} className="input" required placeholder="Ej. Parejas de 25-45 años de EE.UU." />
+                </div>
+                <div>
+                  <label className="label">Hipótesis / Razón del Diseño ("¿Por qué se creó?")</label>
+                  <textarea 
+                    value={form.hypothesis} 
+                    onChange={e => setForm({ ...form, hypothesis: e.target.value })} 
+                    className="input" 
+                    required 
+                    rows="3" 
+                    placeholder="Ej. El ángulo inspiracional de amanecer apela al deseo de tranquilidad y exclusividad..." 
+                  />
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Cancelar</button>
-                <button type="submit" className="btn btn-primary">Subir Activo</button>
+                <button type="submit" className="btn btn-primary">Registrar Activo</button>
               </div>
             </form>
           </div>
