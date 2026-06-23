@@ -12,11 +12,11 @@ const initialProducts = [
 ];
 
 const initialCollaborators = [
-  { id: 'col-1', name: 'Alejandro Ramos', role: 'Publicista', dateJoined: '2025-01-15', status: 'Activo', obligations: { posts: 15, reels: 12, videos: 0, reports: 1 } },
-  { id: 'col-2', name: 'Mariana Flores', role: 'Community Manager', dateJoined: '2025-02-10', status: 'Activo', obligations: { posts: 25, reels: 15, videos: 2, reports: 1 } },
-  { id: 'col-3', name: 'Diego Quispe', role: 'Diseñador', dateJoined: '2025-03-01', status: 'Activo', obligations: { posts: 20, reels: 8, videos: 0, reports: 0 } },
-  { id: 'col-4', name: 'Sofía Condori', role: 'Editor', dateJoined: '2025-01-20', status: 'Activo', obligations: { posts: 0, reels: 15, videos: 6, reports: 0 } },
-  { id: 'col-5', name: 'Carlos Vega', role: 'Fotógrafo', dateJoined: '2025-04-12', status: 'Activo', obligations: { posts: 10, reels: 10, videos: 4, reports: 0 } }
+  { id: 'col-1', name: 'Alejandro Ramos', role: 'Publicista', dateJoined: '2025-01-15', status: 'Activo', obligations: { posts: 15, reels: 12, videos: 0, reports: 1 }, metadata: '{\n  "commission_rate": 0.05,\n  "preferred_channel": "Meta Ads"\n}' },
+  { id: 'col-2', name: 'Mariana Flores', role: 'Community Manager', dateJoined: '2025-02-10', status: 'Activo', obligations: { posts: 25, reels: 15, videos: 2, reports: 1 }, metadata: '{\n  "languages": ["Español", "Inglés"],\n  "experience_years": 3\n}' },
+  { id: 'col-3', name: 'Diego Quispe', role: 'Diseñador', dateJoined: '2025-03-01', status: 'Activo', obligations: { posts: 20, reels: 8, videos: 0, reports: 0 }, metadata: '{\n  "tools": ["Figma", "Photoshop", "Illustrator"]\n}' },
+  { id: 'col-4', name: 'Sofía Condori', role: 'Editor', dateJoined: '2025-01-20', status: 'Activo', obligations: { posts: 0, reels: 15, videos: 6, reports: 0 }, metadata: '{\n  "software": ["Premiere Pro", "After Effects"]\n}' },
+  { id: 'col-5', name: 'Carlos Vega', role: 'Fotógrafo', dateJoined: '2025-04-12', status: 'Activo', obligations: { posts: 10, reels: 10, videos: 4, reports: 0 }, metadata: '{\n  "equipment": ["Sony Alpha 7 IV", "Drone DJI Mavic 3"]\n}' }
 ];
 
 const initialAnnualPlans = [

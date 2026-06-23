@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
-import { Plus, Edit, Trash2, Users2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Users2, CheckCircle, AlertCircle, Code } from 'lucide-react';
 
 const ROLES = ['Publicista', 'Community Manager', 'Diseñador', 'Editor', 'Fotógrafo'];
 
@@ -31,25 +31,34 @@ export const PersonalMarketing = () => {
   const { collaborators, addCollaborator, updateCollaborator, deleteCollaborator, getCollaboratorCompliance, filters } = useContext(MarketingContext);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCol, setEditingCol] = useState(null);
-  const [form, setForm] = useState({ name: '', role: 'Community Manager', dateJoined: '', status: 'Activo', obligations: { posts: 11, reels: 11, videos: 4, reports: 1 } });
+  const [form, setForm] = useState({ name: '', role: 'Community Manager', dateJoined: '', status: 'Activo', obligations: { posts: 11, reels: 11, videos: 4, reports: 1 }, metadata: '{}' });
   const [selectedCol, setSelectedCol] = useState(collaborators[0]?.id || null);
+  const [jsonError, setJsonError] = useState('');
 
   const filteredCols = collaborators.filter(c => filters.owner === 'all' || c.name === filters.owner);
 
+  const validateJson = (str) => {
+    try { JSON.parse(str || '{}'); setJsonError(''); return true; }
+    catch (e) { setJsonError('⚠ JSON inválido: ' + e.message); return false; }
+  };
+
   const openAdd = () => {
     setEditingCol(null);
-    setForm({ name: '', role: 'Community Manager', dateJoined: new Date().toISOString().split('T')[0], status: 'Activo', obligations: { posts: 11, reels: 11, videos: 4, reports: 1 } });
+    setForm({ name: '', role: 'Community Manager', dateJoined: new Date().toISOString().split('T')[0], status: 'Activo', obligations: { posts: 11, reels: 11, videos: 4, reports: 1 }, metadata: '{}' });
+    setJsonError('');
     setIsModalOpen(true);
   };
 
   const openEdit = (col) => {
     setEditingCol(col);
-    setForm({ ...col, obligations: { ...col.obligations } });
+    setForm({ ...col, obligations: { ...col.obligations }, metadata: col.metadata || '{}' });
+    setJsonError('');
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validateJson(form.metadata)) return;
     if (editingCol) updateCollaborator({ ...editingCol, ...form });
     else addCollaborator(form);
     setIsModalOpen(false);
@@ -211,6 +220,27 @@ export const PersonalMarketing = () => {
                 ))}
               </div>
             </div>
+
+            {/* Metadata Card */}
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <Code size={16} style={{ color: roleColor(selectedColObj.role) }} />
+                <span className="card-title" style={{ margin: 0 }}>Configuración de Perfil (JSON)</span>
+              </div>
+              <pre style={{
+                backgroundColor: 'var(--bg-primary)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '1rem',
+                overflow: 'auto',
+                fontSize: '0.775rem',
+                color: '#a5f3fc',
+                lineHeight: '1.6',
+                border: '1px solid var(--border-light)',
+                maxHeight: '200px'
+              }}>
+                {selectedColObj.metadata || '{}'}
+              </pre>
+            </div>
           </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1, color: 'var(--text-muted)', gap: '1rem' }}>
@@ -269,6 +299,21 @@ export const PersonalMarketing = () => {
                       </div>
                     ))}
                   </div>
+                </div>
+                
+                <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1rem' }}>
+                  <label className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Code size={12} /> Configuración de Perfil (JSON)
+                  </label>
+                  <textarea
+                    value={form.metadata}
+                    onChange={e => { setForm({ ...form, metadata: e.target.value }); validateJson(e.target.value); }}
+                    className="input"
+                    rows="4"
+                    style={{ fontFamily: 'monospace', fontSize: '0.8rem', resize: 'vertical' }}
+                    placeholder='{\n  "commission_rate": 0.05\n}'
+                  />
+                  {jsonError && <div style={{ color: 'var(--color-danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{jsonError}</div>}
                 </div>
               </div>
               <div className="modal-footer">
