@@ -239,7 +239,7 @@ export const PublicidadDigital = () => {
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', width: '100%', marginBottom: '0.25rem' }}
           disabled={isSyncing}
         >
-          <RefreshCw size={12} style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} /> 
+          <RefreshCw size={12} className={isSyncing ? 'spin' : ''} /> 
           {isSyncing ? 'Sincronizando...' : 'Sincronizar APIs Ads'}
         </button>
         {syncStatus && (

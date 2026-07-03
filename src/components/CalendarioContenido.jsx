@@ -33,17 +33,19 @@ export const CalendarioContenido = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [parsedPosts, setParsedPosts] = useState([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [importMode, setImportMode] = useState('text'); // 'text' | 'file'
+  const [importFileName, setImportFileName] = useState('');
 
-  const handleImportTextChange = (text) => {
-    setImportText(text);
+  const parseLines = (text) => {
     const lines = text.split('\n');
     const parsed = [];
-    
     lines.forEach((line, index) => {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) return; // ignore comments
-      
-      const parts = trimmed.split('|').map(p => p.trim());
+      if (!trimmed || trimmed.startsWith('#')) return;
+      // support both pipe | and comma , as delimiters
+      const separator = trimmed.includes('|') ? '|' : ',';
+      const parts = trimmed.split(separator).map(p => p.trim().replace(/^"|"$/g, ''));
       if (parts.length >= 4) {
         const [publishDate, channel, contentType, product, copy, owner] = parts;
         parsed.push({
@@ -53,14 +55,40 @@ export const CalendarioContenido = () => {
           contentType: contentType || 'Reel',
           product: product || products[0]?.id || '',
           copy: copy || 'Sin copy',
-          owner: owner || collaborators[0]?.name || 'Mariana Flores',
+          owner: owner || collaborators[0]?.name || '',
           status: 'Idea',
           designUrl: '',
           publishUrl: ''
         });
       }
     });
-    setParsedPosts(parsed);
+    return parsed;
+  };
+
+  const handleImportTextChange = (text) => {
+    setImportText(text);
+    setParsedPosts(parseLines(text));
+  };
+
+  const handleFileUpload = (file) => {
+    if (!file) return;
+    setImportFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      setImportText(text);
+      setParsedPosts(parseLines(text));
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && (file.name.endsWith('.csv') || file.name.endsWith('.txt'))) {
+      handleFileUpload(file);
+    }
   };
 
   const handleImportSubmit = (e) => {
@@ -72,6 +100,22 @@ export const CalendarioContenido = () => {
     setIsImportModalOpen(false);
     setImportText('');
     setParsedPosts([]);
+    setImportFileName('');
+  };
+
+  const exportCalendar = () => {
+    const headers = ['id', 'publishDate', 'channel', 'contentType', 'product', 'owner', 'status', 'copy', 'designUrl', 'publishUrl'];
+    const rows = filteredPosts.map(p =>
+      headers.map(h => `"${String(p[h] || '').replace(/"/g, '""')}"`).join(',')
+    );
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cronograma_contenido_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Form State
@@ -244,6 +288,9 @@ export const CalendarioContenido = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={exportCalendar} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} title="Exportar calendario actual como CSV para análisis">
+            <FileText size={14} /> Exportar CSV
+          </button>
           <button onClick={() => setIsImportModalOpen(true)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <Upload size={14} /> Importar Cronograma
           </button>
@@ -528,40 +575,79 @@ export const CalendarioContenido = () => {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '750px' }}>
             <div className="modal-header">
-              <h3>Importar Cronograma Masivo</h3>
-              <button onClick={() => setIsImportModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.25rem' }}>&times;</button>
+              <h3>📅 Importar Cronograma Masivo</h3>
+              <button onClick={() => { setIsImportModalOpen(false); setImportText(''); setParsedPosts([]); setImportFileName(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.25rem' }}>&times;</button>
             </div>
             <form onSubmit={handleImportSubmit}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Pega tu cronograma de contenido aquí abajo en el formato estructurado. Cada publicación debe ocupar una línea separada por una barra vertical (<strong style={{ color: 'var(--color-primary)' }}>|</strong>).
-                </p>
-                <div style={{ fontSize: '0.725rem', backgroundColor: 'var(--bg-secondary)', padding: '0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
-                  <strong>Formato sugerido:</strong> <code>Fecha (AAAA-MM-DD) | Canal | Tipo de Contenido | Producto ID | Copy / Texto | Responsable</code><br/>
-                  <strong>Ejemplo:</strong><br/>
-                  <code>2026-06-20 | Instagram | Reel | machu-picchu | ¡Atardecer único en Machu Picchu! 🌅 | Mariana Flores</code><br/>
-                  <code>2026-06-21 | TikTok | Reel | humantay | Caminata retadora pero increíble ⛰️ | Sofía Condori</code>
-                </div>
-                
-                <div>
-                  <label className="label">Cronograma en Texto Estructurado</label>
-                  <textarea 
-                    value={importText} 
-                    onChange={(e) => handleImportTextChange(e.target.value)} 
-                    className="input" 
-                    rows="8" 
-                    placeholder="Pega las líneas aquí..."
-                    required
-                    style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
-                  ></textarea>
+                {/* Mode Toggle */}
+                <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', padding: '2px', alignSelf: 'flex-start' }}>
+                  <button type="button" onClick={() => setImportMode('text')} className={`btn btn-sm ${importMode === 'text' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }}>Pegar Texto</button>
+                  <button type="button" onClick={() => setImportMode('file')} className={`btn btn-sm ${importMode === 'file' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }}>Subir Archivo CSV</button>
                 </div>
 
+                {/* Format Reference */}
+                <div style={{ fontSize: '0.725rem', backgroundColor: 'var(--bg-secondary)', padding: '0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
+                  <strong>Formato:</strong> <code>Fecha | Canal | Tipo | Producto ID | Copy | Responsable</code><br/>
+                  <strong>Soporta:</strong> separadores por <code>|</code> (pipe) o <code>,</code> (coma/CSV)<br/>
+                  <strong>Ejemplo:</strong><br/>
+                  <code>2026-06-20 | Instagram | Reel | machu-picchu | ¡Atardecer único! 🌅 | Mariana Flores</code>
+                </div>
+
+                {/* Text Mode */}
+                {importMode === 'text' && (
+                  <div>
+                    <label className="label">Cronograma en Texto Estructurado</label>
+                    <textarea 
+                      value={importText} 
+                      onChange={(e) => handleImportTextChange(e.target.value)} 
+                      className="input" 
+                      rows="8" 
+                      placeholder={"# Comentarios empiezan con #\n2026-06-20 | Instagram | Reel | machu-picchu | Copy aquí | Mariana Flores\n2026-06-21 | TikTok | Reel | humantay | Otro copy | Sofía Condori"}
+                      style={{ fontFamily: 'monospace', fontSize: '0.8rem', resize: 'vertical' }}
+                    ></textarea>
+                  </div>
+                )}
+
+                {/* File Upload Mode */}
+                {importMode === 'file' && (
+                  <div>
+                    <label className="label">Archivo CSV o TXT</label>
+                    <label
+                      className={`dropzone ${isDragOver ? 'dragover' : ''}`}
+                      onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                      onDragLeave={() => setIsDragOver(false)}
+                      onDrop={handleDrop}
+                    >
+                      <input 
+                        type="file" 
+                        accept=".csv,.txt" 
+                        onChange={(e) => handleFileUpload(e.target.files[0])} 
+                      />
+                      {importFileName ? (
+                        <div>
+                          <CheckCircle size={20} style={{ color: 'var(--color-success)', marginBottom: '0.5rem' }} />
+                          <div style={{ fontWeight: 600 }}>{importFileName}</div>
+                          <div style={{ fontSize: '0.7rem', marginTop: '0.25rem' }}>Archivo cargado. Haz clic para cambiar.</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <Upload size={24} style={{ marginBottom: '0.5rem', opacity: 0.6 }} />
+                          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Arrastra tu archivo aquí</div>
+                          <div>o haz clic para seleccionar un .csv o .txt</div>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                )}
+
+                {/* Preview Table */}
                 {parsedPosts.length > 0 && (
                   <div>
                     <h4 style={{ fontSize: '0.8rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-success)' }}>
-                      <CheckCircle size={14} /> Publicaciones detectadas ({parsedPosts.length})
+                      <CheckCircle size={14} /> {parsedPosts.length} publicaciones detectadas y listas para importar
                     </h4>
-                    <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', backgroundColor: 'var(--bg-primary)' }}>
+                    <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', backgroundColor: 'var(--bg-primary)' }}>
                       <table className="table" style={{ margin: 0 }}>
                         <thead>
                           <tr style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1 }}>
@@ -591,7 +677,7 @@ export const CalendarioContenido = () => {
                 )}
               </div>
               <div className="modal-footer">
-                <button type="button" onClick={() => { setIsImportModalOpen(false); setImportText(''); setParsedPosts([]); }} className="btn btn-secondary">Cancelar</button>
+                <button type="button" onClick={() => { setIsImportModalOpen(false); setImportText(''); setParsedPosts([]); setImportFileName(''); }} className="btn btn-secondary">Cancelar</button>
                 <button type="submit" className="btn btn-primary" disabled={parsedPosts.length === 0}>
                   Cargar al Calendario ({parsedPosts.length})
                 </button>
