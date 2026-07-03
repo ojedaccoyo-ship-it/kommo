@@ -9,7 +9,9 @@ import {
   ExternalLink, 
   Paperclip,
   CheckCircle,
-  Eye
+  Eye,
+  Upload,
+  FileText
 } from 'lucide-react';
 
 export const CalendarioContenido = () => {
@@ -26,6 +28,51 @@ export const CalendarioContenido = () => {
   const [viewMode, setViewMode] = useState('calendar'); // 'calendar' or 'list'
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
+  
+  // Schedule Import States
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [parsedPosts, setParsedPosts] = useState([]);
+
+  const handleImportTextChange = (text) => {
+    setImportText(text);
+    const lines = text.split('\n');
+    const parsed = [];
+    
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return; // ignore comments
+      
+      const parts = trimmed.split('|').map(p => p.trim());
+      if (parts.length >= 4) {
+        const [publishDate, channel, contentType, product, copy, owner] = parts;
+        parsed.push({
+          id: `parsed-${index}-${Date.now()}`,
+          publishDate: publishDate || new Date().toISOString().split('T')[0],
+          channel: channel || 'Instagram',
+          contentType: contentType || 'Reel',
+          product: product || products[0]?.id || '',
+          copy: copy || 'Sin copy',
+          owner: owner || collaborators[0]?.name || 'Mariana Flores',
+          status: 'Idea',
+          designUrl: '',
+          publishUrl: ''
+        });
+      }
+    });
+    setParsedPosts(parsed);
+  };
+
+  const handleImportSubmit = (e) => {
+    e.preventDefault();
+    parsedPosts.forEach(post => {
+      const { id, ...postData } = post;
+      addContent(postData);
+    });
+    setIsImportModalOpen(false);
+    setImportText('');
+    setParsedPosts([]);
+  };
 
   // Form State
   const [form, setForm] = useState({
@@ -196,9 +243,14 @@ export const CalendarioContenido = () => {
           </button>
         </div>
 
-        <button onClick={openAddModal} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <Plus size={16} /> Planificar Post
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={() => setIsImportModalOpen(true)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <Upload size={14} /> Importar Cronograma
+          </button>
+          <button onClick={openAddModal} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <Plus size={16} /> Planificar Post
+          </button>
+        </div>
       </div>
 
       {/* Render Main View */}
@@ -465,6 +517,84 @@ export const CalendarioContenido = () => {
               <div className="modal-footer">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Cancelar</button>
                 <button type="submit" className="btn btn-primary">{editingPost ? 'Actualizar Post' : 'Agregar Post'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* IMPORT MASSIVE CALENDAR MODAL */}
+      {isImportModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '750px' }}>
+            <div className="modal-header">
+              <h3>Importar Cronograma Masivo</h3>
+              <button onClick={() => setIsImportModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.25rem' }}>&times;</button>
+            </div>
+            <form onSubmit={handleImportSubmit}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Pega tu cronograma de contenido aquí abajo en el formato estructurado. Cada publicación debe ocupar una línea separada por una barra vertical (<strong style={{ color: 'var(--color-primary)' }}>|</strong>).
+                </p>
+                <div style={{ fontSize: '0.725rem', backgroundColor: 'var(--bg-secondary)', padding: '0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
+                  <strong>Formato sugerido:</strong> <code>Fecha (AAAA-MM-DD) | Canal | Tipo de Contenido | Producto ID | Copy / Texto | Responsable</code><br/>
+                  <strong>Ejemplo:</strong><br/>
+                  <code>2026-06-20 | Instagram | Reel | machu-picchu | ¡Atardecer único en Machu Picchu! 🌅 | Mariana Flores</code><br/>
+                  <code>2026-06-21 | TikTok | Reel | humantay | Caminata retadora pero increíble ⛰️ | Sofía Condori</code>
+                </div>
+                
+                <div>
+                  <label className="label">Cronograma en Texto Estructurado</label>
+                  <textarea 
+                    value={importText} 
+                    onChange={(e) => handleImportTextChange(e.target.value)} 
+                    className="input" 
+                    rows="8" 
+                    placeholder="Pega las líneas aquí..."
+                    required
+                    style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+                  ></textarea>
+                </div>
+
+                {parsedPosts.length > 0 && (
+                  <div>
+                    <h4 style={{ fontSize: '0.8rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-success)' }}>
+                      <CheckCircle size={14} /> Publicaciones detectadas ({parsedPosts.length})
+                    </h4>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', backgroundColor: 'var(--bg-primary)' }}>
+                      <table className="table" style={{ margin: 0 }}>
+                        <thead>
+                          <tr style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-secondary)', zIndex: 1 }}>
+                            <th>Fecha</th>
+                            <th>Canal</th>
+                            <th>Tipo</th>
+                            <th>Producto</th>
+                            <th>Copy</th>
+                            <th>Responsable</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {parsedPosts.map(post => (
+                            <tr key={post.id}>
+                              <td>{post.publishDate}</td>
+                              <td>{post.channel}</td>
+                              <td>{post.contentType}</td>
+                              <td>{post.product}</td>
+                              <td style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.copy}</td>
+                              <td>{post.owner}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" onClick={() => { setIsImportModalOpen(false); setImportText(''); setParsedPosts([]); }} className="btn btn-secondary">Cancelar</button>
+                <button type="submit" className="btn btn-primary" disabled={parsedPosts.length === 0}>
+                  Cargar al Calendario ({parsedPosts.length})
+                </button>
               </div>
             </form>
           </div>
