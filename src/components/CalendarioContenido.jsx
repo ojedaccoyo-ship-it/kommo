@@ -1,4 +1,5 @@
 import React, { useContext, useState } from 'react';
+import ExcelJS from 'exceljs';
 import { MarketingContext } from '../context/MarketingContext';
 import {
   Plus,
@@ -14,6 +15,10 @@ import {
   FileText,
   Download
 } from 'lucide-react';
+
+const CHANNEL_OPTIONS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Blog', 'WhatsApp'];
+const CONTENT_TYPE_OPTIONS = ['Imagen', 'Reel', 'Video', 'Carrusel', 'Historia', 'Artículo'];
+const TEMPLATE_ROWS = 200;
 
 export const CalendarioContenido = () => {
   const { 
@@ -38,6 +43,14 @@ export const CalendarioContenido = () => {
   const [importMode, setImportMode] = useState('text'); // 'text' | 'file'
   const [importFileName, setImportFileName] = useState('');
 
+  // Matches typed text against a product's internal id OR its display name, so "Machu Picchu" and "machu-picchu" both resolve
+  const resolveProductId = (value) => {
+    if (!value) return products[0]?.id || '';
+    const trimmed = String(value).trim();
+    const match = products.find(p => p.id.toLowerCase() === trimmed.toLowerCase() || p.name.toLowerCase() === trimmed.toLowerCase());
+    return match ? match.id : trimmed;
+  };
+
   const parseLines = (text) => {
     const lines = text.split('\n');
     const parsed = [];
@@ -54,7 +67,7 @@ export const CalendarioContenido = () => {
           publishDate: publishDate || new Date().toISOString().split('T')[0],
           channel: channel || 'Instagram',
           contentType: contentType || 'Reel',
-          product: product || products[0]?.id || '',
+          product: resolveProductId(product),
           copy: copy || 'Sin copy',
           owner: owner || collaborators[0]?.name || '',
           status: 'Idea',
@@ -62,6 +75,46 @@ export const CalendarioContenido = () => {
           publishUrl: ''
         });
       }
+    });
+    return parsed;
+  };
+
+  // Reads back the .xlsx smart template (dropdown-filled rows), one row per planned post
+  const parseXlsxFile = async (file) => {
+    const buffer = await file.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const sheet = workbook.getWorksheet('Cronograma') || workbook.worksheets[0];
+    const parsed = [];
+    const cellText = (cell) => {
+      const v = cell?.value;
+      if (v === null || v === undefined) return '';
+      if (v instanceof Date) return v.toISOString().split('T')[0];
+      if (typeof v === 'object' && 'text' in v) return String(v.text).trim();
+      if (typeof v === 'object' && 'result' in v) return String(v.result).trim();
+      return String(v).trim();
+    };
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // header row
+      const publishDate = cellText(row.getCell(1));
+      const channel = cellText(row.getCell(2));
+      const contentType = cellText(row.getCell(3));
+      const productRaw = cellText(row.getCell(4));
+      const copy = cellText(row.getCell(5));
+      const owner = cellText(row.getCell(6));
+      if (!publishDate && !channel && !productRaw && !copy) return; // skip blank rows
+      parsed.push({
+        id: `parsed-${rowNumber}-${Date.now()}`,
+        publishDate: publishDate || new Date().toISOString().split('T')[0],
+        channel: channel || 'Instagram',
+        contentType: contentType || 'Reel',
+        product: resolveProductId(productRaw),
+        copy: copy || 'Sin copy',
+        owner: owner || collaborators[0]?.name || '',
+        status: 'Idea',
+        designUrl: '',
+        publishUrl: ''
+      });
     });
     return parsed;
   };
@@ -74,6 +127,11 @@ export const CalendarioContenido = () => {
   const handleFileUpload = (file) => {
     if (!file) return;
     setImportFileName(file.name);
+    if (file.name.toLowerCase().endsWith('.xlsx')) {
+      setImportText('');
+      parseXlsxFile(file).then(setParsedPosts);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target.result;
@@ -87,7 +145,7 @@ export const CalendarioContenido = () => {
     e.preventDefault();
     setIsDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.csv') || file.name.endsWith('.txt'))) {
+    if (file && (file.name.endsWith('.csv') || file.name.endsWith('.txt') || file.name.endsWith('.xlsx'))) {
       handleFileUpload(file);
     }
   };
@@ -104,43 +162,78 @@ export const CalendarioContenido = () => {
     setImportFileName('');
   };
 
-  const downloadImportTemplate = () => {
-    const productList = products.map(p => p.id).join(', ') || 'sin-productos-registrados';
-    const ownerList = collaborators.map(c => c.name).join(', ') || 'sin-responsables-registrados';
+  // Builds a real .xlsx with dropdown validation on Canal/Tipo/Producto/Responsable, so filling it in Excel avoids typos
+  const downloadImportTemplate = async () => {
     const today = new Date();
     const exampleDate = (offsetDays) => {
       const d = new Date(today);
       d.setDate(d.getDate() + offsetDays);
       return d.toISOString().split('T')[0];
     };
-    const firstProduct = products[0]?.id || 'machu-picchu';
-    const secondProduct = products[1]?.id || firstProduct;
-    const firstOwner = collaborators[0]?.name || 'Responsable';
-    const secondOwner = collaborators[1]?.name || firstOwner;
+    const productNames = products.map(p => p.name);
+    const ownerNames = collaborators.map(c => c.name);
+    const firstProduct = productNames[0] || 'Machu Picchu';
+    const secondProduct = productNames[1] || firstProduct;
+    const firstOwner = ownerNames[0] || 'Responsable';
+    const secondOwner = ownerNames[1] || firstOwner;
 
-    const lines = [
-      '# Plantilla para importar el Calendario de Contenido',
-      '# Descarga, edita en cualquier editor de texto o Excel, guarda y vuelve a subirla en "Subir Archivo CSV".',
-      '#',
-      '# Formato: Fecha (AAAA-MM-DD) | Canal | Tipo de Contenido | Producto | Copy | Responsable',
-      '# Una publicación por línea. Las líneas que empiezan con # se ignoran al importar.',
-      '#',
-      '# CANALES VÁLIDOS: Facebook, Instagram, TikTok, YouTube, Blog, WhatsApp',
-      '# TIPOS VÁLIDOS: Imagen, Reel, Video, Carrusel, Historia, Artículo',
-      `# PRODUCTOS VÁLIDOS (escribe exactamente así): ${productList}`,
-      `# RESPONSABLES VÁLIDOS (escribe exactamente así): ${ownerList}`,
-      '#',
-      '# --- Reemplaza o duplica estas líneas de ejemplo ---',
-      `${exampleDate(2)}|Instagram|Reel|${firstProduct}|Escribe aquí el copy de la publicación|${firstOwner}`,
-      `${exampleDate(4)}|Facebook|Imagen|${secondProduct}|Escribe aquí el copy de la publicación|${secondOwner}`,
-      `${exampleDate(6)}|TikTok|Reel|${firstProduct}|Escribe aquí el copy de la publicación|${firstOwner}`
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Kommo ERP - Módulo de Marketing';
+    workbook.created = today;
+
+    // --- Instructions sheet ---
+    const info = workbook.addWorksheet('Instrucciones');
+    info.columns = [{ width: 95 }];
+    info.addRow(['Cómo usar esta plantilla']).font = { bold: true, size: 14 };
+    info.addRow([]);
+    [
+      '1. Ve a la hoja "Cronograma" y llena una fila por publicación planificada.',
+      '2. Usa los menús desplegables en Canal, Tipo de Contenido, Producto y Responsable — evitan errores de escritura.',
+      '3. La Fecha debe tener el formato AAAA-MM-DD, por ejemplo 2026-08-15.',
+      '4. No borres ni renombres la fila de encabezados (fila 1).',
+      '5. Guarda el archivo y súbelo de vuelta en "Importar Cronograma" → "Subir Archivo".'
+    ].forEach(line => { info.addRow([line]); });
+
+    // --- Cronograma sheet ---
+    const sheet = workbook.addWorksheet('Cronograma');
+    sheet.columns = [
+      { header: 'Fecha (AAAA-MM-DD)', key: 'date', width: 18 },
+      { header: 'Canal', key: 'channel', width: 14 },
+      { header: 'Tipo de Contenido', key: 'type', width: 18 },
+      { header: 'Producto', key: 'product', width: 20 },
+      { header: 'Copy', key: 'copy', width: 50 },
+      { header: 'Responsable', key: 'owner', width: 20 }
     ];
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0EA5E9' } };
+    headerRow.alignment = { vertical: 'middle' };
+    sheet.views = [{ state: 'frozen', ySplit: 1 }];
+    sheet.autoFilter = 'A1:F1';
 
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    sheet.addRow({ date: exampleDate(2), channel: 'Instagram', type: 'Reel', product: firstProduct, copy: 'Escribe aquí el copy de la publicación', owner: firstOwner });
+    sheet.addRow({ date: exampleDate(4), channel: 'Facebook', type: 'Imagen', product: secondProduct, copy: 'Escribe aquí el copy de la publicación', owner: secondOwner });
+    sheet.addRow({ date: exampleDate(6), channel: 'TikTok', type: 'Reel', product: firstProduct, copy: 'Escribe aquí el copy de la publicación', owner: firstOwner });
+
+    // Dropdown (data validation) lists applied down the sheet for easy bulk planning
+    const listFormula = (values) => `"${values.join(',')}"`;
+    for (let row = 2; row <= TEMPLATE_ROWS; row++) {
+      sheet.getCell(`B${row}`).dataValidation = { type: 'list', allowBlank: true, formulae: [listFormula(CHANNEL_OPTIONS)] };
+      sheet.getCell(`C${row}`).dataValidation = { type: 'list', allowBlank: true, formulae: [listFormula(CONTENT_TYPE_OPTIONS)] };
+      if (productNames.length > 0) {
+        sheet.getCell(`D${row}`).dataValidation = { type: 'list', allowBlank: true, formulae: [listFormula(productNames)] };
+      }
+      if (ownerNames.length > 0) {
+        sheet.getCell(`F${row}`).dataValidation = { type: 'list', allowBlank: true, formulae: [listFormula(ownerNames)] };
+      }
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'plantilla_calendario_contenido.txt';
+    a.download = 'plantilla_calendario_contenido.xlsx';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -626,19 +719,19 @@ export const CalendarioContenido = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', padding: '2px' }}>
                     <button type="button" onClick={() => setImportMode('text')} className={`btn btn-sm ${importMode === 'text' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }}>Pegar Texto</button>
-                    <button type="button" onClick={() => setImportMode('file')} className={`btn btn-sm ${importMode === 'file' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }}>Subir Archivo CSV</button>
+                    <button type="button" onClick={() => setImportMode('file')} className={`btn btn-sm ${importMode === 'file' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }}>Subir Archivo</button>
                   </div>
-                  <button type="button" onClick={downloadImportTemplate} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }} title="Descarga un archivo .txt con el formato y ejemplos, listo para editar y volver a subir">
-                    <Download size={12} /> Descargar Plantilla
+                  <button type="button" onClick={downloadImportTemplate} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }} title="Descarga una plantilla Excel (.xlsx) con menús desplegables, lista para llenar y volver a subir">
+                    <Download size={12} /> Descargar Plantilla Excel
                   </button>
                 </div>
 
                 {/* Format Reference */}
                 <div style={{ fontSize: '0.725rem', backgroundColor: 'var(--bg-secondary)', padding: '0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
-                  <strong>Formato:</strong> <code>Fecha | Canal | Tipo | Producto ID | Copy | Responsable</code><br/>
-                  <strong>Soporta:</strong> separadores por <code>|</code> (pipe) o <code>,</code> (coma/CSV)<br/>
+                  <strong>Plantilla Excel:</strong> trae menús desplegables en Canal, Tipo, Producto y Responsable — evita errores de escritura al llenarla.<br/>
+                  <strong>Formato para pegar texto o CSV:</strong> <code>Fecha | Canal | Tipo | Producto | Copy | Responsable</code> (soporta <code>|</code> o <code>,</code> como separador)<br/>
                   <strong>Ejemplo:</strong><br/>
-                  <code>2026-06-20 | Instagram | Reel | machu-picchu | ¡Atardecer único! 🌅 | Mariana Flores</code>
+                  <code>2026-06-20 | Instagram | Reel | Machu Picchu | ¡Atardecer único! 🌅 | Mariana Flores</code>
                 </div>
 
                 {/* Text Mode */}
@@ -659,17 +752,17 @@ export const CalendarioContenido = () => {
                 {/* File Upload Mode */}
                 {importMode === 'file' && (
                   <div>
-                    <label className="label">Archivo CSV o TXT</label>
+                    <label className="label">Archivo Excel (.xlsx), CSV o TXT</label>
                     <label
                       className={`dropzone ${isDragOver ? 'dragover' : ''}`}
                       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                       onDragLeave={() => setIsDragOver(false)}
                       onDrop={handleDrop}
                     >
-                      <input 
-                        type="file" 
-                        accept=".csv,.txt" 
-                        onChange={(e) => handleFileUpload(e.target.files[0])} 
+                      <input
+                        type="file"
+                        accept=".csv,.txt,.xlsx"
+                        onChange={(e) => handleFileUpload(e.target.files[0])}
                       />
                       {importFileName ? (
                         <div>
@@ -681,7 +774,7 @@ export const CalendarioContenido = () => {
                         <div>
                           <Upload size={24} style={{ marginBottom: '0.5rem', opacity: 0.6 }} />
                           <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Arrastra tu archivo aquí</div>
-                          <div>o haz clic para seleccionar un .csv o .txt</div>
+                          <div>o haz clic para seleccionar un .xlsx, .csv o .txt</div>
                         </div>
                       )}
                     </label>
