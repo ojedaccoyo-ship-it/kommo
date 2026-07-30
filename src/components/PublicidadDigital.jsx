@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
 import {
   Plus, Edit, Trash2, TrendingUp, Eye, MousePointer,
-  DollarSign, MessageCircle, Users, ShoppingCart, Megaphone, Code, RefreshCw
+  DollarSign, MessageCircle, Users, ShoppingCart, Megaphone, Code, RefreshCw, Download
 } from 'lucide-react';
 
 const PLATFORMS = ['Meta Ads', 'Google Ads', 'TikTok Ads'];
@@ -28,8 +28,91 @@ const MetricCard = ({ icon: Icon, label, value, color, sub }) => (
   </div>
 );
 
+// Line chart of spent vs. revenue across saved result snapshots — both series share one axis (same unit: $)
+const ResultsTrendChart = ({ history }) => {
+  const [hoverIdx, setHoverIdx] = useState(null);
+  const sorted = [...(history || [])].sort((a, b) => a.date.localeCompare(b.date));
+
+  if (sorted.length < 2) {
+    return (
+      <div className="card" style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+        Aún no hay suficientes puntos históricos para trazar una tendencia. Cada vez que actualices los resultados se guarda un nuevo punto con su fecha.
+      </div>
+    );
+  }
+
+  const width = 640, height = 220;
+  const padding = { top: 16, right: 16, bottom: 26, left: 56 };
+  const innerW = width - padding.left - padding.right;
+  const innerH = height - padding.top - padding.bottom;
+  const maxVal = Math.max(...sorted.map(d => Math.max(d.spent, d.revenue)), 1);
+  const xFor = (i) => padding.left + (sorted.length === 1 ? 0 : (i / (sorted.length - 1)) * innerW);
+  const yFor = (v) => padding.top + innerH - (v / maxVal) * innerH;
+  const linePath = (key) => sorted.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i)} ${yFor(d[key])}`).join(' ');
+  const ticks = [0, 0.5, 1].map(f => Math.round(maxVal * f));
+
+  const handleMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relX = ((e.clientX - rect.left) / rect.width) * width;
+    let closest = 0, closestDist = Infinity;
+    sorted.forEach((_, i) => {
+      const dist = Math.abs(xFor(i) - relX);
+      if (dist < closestDist) { closestDist = dist; closest = i; }
+    });
+    setHoverIdx(closest);
+  };
+
+  return (
+    <div className="card" style={{ padding: '1.25rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <span className="card-title" style={{ margin: 0 }}>Gasto vs. Ingresos en el tiempo</span>
+        <div style={{ display: 'flex', gap: '1rem', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-danger)', display: 'inline-block' }} /> Gasto
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-success)', display: 'inline-block' }} /> Ingresos
+          </span>
+        </div>
+      </div>
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}
+        onMouseMove={handleMove} onMouseLeave={() => setHoverIdx(null)}>
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={padding.left} x2={width - padding.right} y1={yFor(t)} y2={yFor(t)} stroke="var(--border-light)" strokeWidth="1" />
+            <text x={padding.left - 8} y={yFor(t)} textAnchor="end" dominantBaseline="middle" fontSize="9" fill="var(--text-muted)">${t.toLocaleString()}</text>
+          </g>
+        ))}
+        {sorted.map((d, i) => (i === 0 || i === sorted.length - 1) && (
+          <text key={i} x={xFor(i)} y={height - 6} textAnchor={i === 0 ? 'start' : 'end'} fontSize="9" fill="var(--text-muted)">{d.date}</text>
+        ))}
+        <path d={linePath('spent')} fill="none" stroke="var(--color-danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={linePath('revenue')} fill="none" stroke="var(--color-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {sorted.map((d, i) => (
+          <g key={i}>
+            <circle cx={xFor(i)} cy={yFor(d.spent)} r={hoverIdx === i ? 4 : 3} fill="var(--color-danger)" />
+            <circle cx={xFor(i)} cy={yFor(d.revenue)} r={hoverIdx === i ? 4 : 3} fill="var(--color-success)" />
+          </g>
+        ))}
+        {hoverIdx !== null && (
+          <line x1={xFor(hoverIdx)} x2={xFor(hoverIdx)} y1={padding.top} y2={height - padding.bottom} stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="3 3" />
+        )}
+      </svg>
+      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem', display: 'flex', gap: '1rem', justifyContent: 'center', minHeight: '1rem' }}>
+        {hoverIdx !== null && (
+          <>
+            <strong style={{ color: 'var(--text-primary)' }}>{sorted[hoverIdx].date}</strong>
+            <span style={{ color: 'var(--color-danger)' }}>Gasto: ${sorted[hoverIdx].spent.toLocaleString()}</span>
+            <span style={{ color: 'var(--color-success)' }}>Ingresos: ${sorted[hoverIdx].revenue.toLocaleString()}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const PublicidadDigital = () => {
-  const { products, collaborators, adsCampaigns, addAdCampaign, updateAdCampaign, deleteAdCampaign, filters } = useContext(MarketingContext);
+  const { products, collaborators, adsCampaigns, addAdCampaign, updateAdCampaign, deleteAdCampaign, addResultsSnapshot, filters } = useContext(MarketingContext);
   const [activeTab, setActiveTab] = useState('campanas');
   const [selectedCampId, setSelectedCampId] = useState(adsCampaigns[0]?.id || null);
   const [isCampModalOpen, setIsCampModalOpen] = useState(false);
@@ -58,18 +141,15 @@ export const PublicidadDigital = () => {
       // Sincronizar ad-camp-1 con nuevos clics/impresiones/leads reales
       const camp1 = adsCampaigns.find(c => c.id === 'ad-camp-1');
       if (camp1) {
-        updateAdCampaign({
-          ...camp1,
-          results: {
-            ...camp1.results,
-            impressions: camp1.results.impressions + 12450,
-            reach: camp1.results.reach + 9800,
-            clicks: camp1.results.clicks + 530,
-            leads: camp1.results.leads + 24,
-            purchases: camp1.results.purchases + 4,
-            spent: camp1.results.spent + 150,
-            revenue: camp1.results.revenue + 1196
-          }
+        addResultsSnapshot('ad-camp-1', {
+          ...camp1.results,
+          impressions: camp1.results.impressions + 12450,
+          reach: camp1.results.reach + 9800,
+          clicks: camp1.results.clicks + 530,
+          leads: camp1.results.leads + 24,
+          purchases: camp1.results.purchases + 4,
+          spent: camp1.results.spent + 150,
+          revenue: camp1.results.revenue + 1196
         });
       }
 
@@ -210,8 +290,26 @@ export const PublicidadDigital = () => {
   };
   const handleResultsSubmit = (e) => {
     e.preventDefault();
-    updateAdCampaign({ ...selectedCamp, results: resultsForm });
+    addResultsSnapshot(selectedCamp.id, resultsForm);
     setIsResultsModalOpen(false);
+  };
+
+  const exportResultsHistory = () => {
+    if (!selectedCamp) return;
+    const headers = ['date', 'impressions', 'reach', 'clicks', 'conversations', 'leads', 'purchases', 'spent', 'revenue', 'roas'];
+    const sorted = [...(selectedCamp.resultsHistory || [])].sort((a, b) => a.date.localeCompare(b.date));
+    const rows = sorted.map(h => {
+      const roas = h.spent > 0 ? (h.revenue / h.spent).toFixed(2) : '0';
+      return headers.map(key => key === 'roas' ? roas : (h[key] ?? '')).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `historial_resultados_${selectedCamp.id}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Computed metrics for selected campaign
@@ -436,8 +534,8 @@ export const PublicidadDigital = () => {
               {/* TAB: RESULTADOS */}
               {activeTab === 'resultados' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ margin: 0, fontSize: '0.875rem' }}>Métricas importadas vía API de plataforma. Actualiza los valores manualmente para simular la sincronización.</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.875rem' }}>Métricas importadas vía API de plataforma. Cada actualización guarda un nuevo punto con fecha, sin borrar los anteriores.</p>
                     <button onClick={openResultsEdit} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                       <TrendingUp size={12} /> Actualizar Resultados
                     </button>
@@ -455,6 +553,43 @@ export const PublicidadDigital = () => {
                     <MetricCard icon={DollarSign} label="Gasto" value={`$${res.spent?.toLocaleString() || '0'}`} color="var(--color-danger)" />
                     <MetricCard icon={DollarSign} label="Ingresos" value={`$${res.revenue?.toLocaleString() || '0'}`} color="var(--color-success)" />
                     <MetricCard icon={TrendingUp} label="ROAS" value={`${roas}x`} color="var(--color-success)" />
+                  </div>
+
+                  <ResultsTrendChart history={selectedCamp.resultsHistory} />
+
+                  <div className="card" style={{ padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <span className="card-title" style={{ margin: 0 }}>Historial de Resultados ({(selectedCamp.resultsHistory || []).length} puntos)</span>
+                      <button onClick={exportResultsHistory} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} title="Exportar serie histórica para análisis (Python/R/Excel)">
+                        <Download size={12} /> Exportar CSV
+                      </button>
+                    </div>
+                    <div className="table-container">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Fecha</th><th>Impresiones</th><th>Clicks</th><th>Leads</th><th>Compras</th><th>Gasto</th><th>Ingresos</th><th>ROAS</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...(selectedCamp.resultsHistory || [])].sort((a, b) => a.date.localeCompare(b.date)).map((h, i) => {
+                            const hRoas = h.spent > 0 ? (h.revenue / h.spent).toFixed(2) : '0';
+                            return (
+                              <tr key={i}>
+                                <td style={{ fontSize: '0.775rem' }}>{h.date}</td>
+                                <td style={{ fontSize: '0.8rem' }}>{h.impressions?.toLocaleString() || 0}</td>
+                                <td style={{ fontSize: '0.8rem' }}>{h.clicks?.toLocaleString() || 0}</td>
+                                <td style={{ fontSize: '0.8rem' }}>{h.leads?.toLocaleString() || 0}</td>
+                                <td style={{ fontSize: '0.8rem' }}>{h.purchases?.toLocaleString() || 0}</td>
+                                <td style={{ fontSize: '0.8rem', color: 'var(--color-danger)' }}>${h.spent?.toLocaleString() || 0}</td>
+                                <td style={{ fontSize: '0.8rem', color: 'var(--color-success)' }}>${h.revenue?.toLocaleString() || 0}</td>
+                                <td><span className={`badge ${parseFloat(hRoas) >= 3 ? 'badge-success' : 'badge-warning'}`}>{hRoas}x</span></td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}

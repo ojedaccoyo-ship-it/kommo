@@ -103,7 +103,13 @@ const initialAdCampaigns = [
       purchases: 85,
       spent: 3500,
       revenue: 25415
-    }
+    },
+    resultsHistory: [
+      { date: '2026-05-15', impressions: 54000, reach: 40000, clicks: 1950, conversations: 120, leads: 70, purchases: 15, spent: 770, revenue: 4200 },
+      { date: '2026-06-01', impressions: 122000, reach: 90000, clicks: 4450, conversations: 275, leads: 160, purchases: 42, spent: 1750, revenue: 12500 },
+      { date: '2026-06-15', impressions: 190000, reach: 140000, clicks: 6900, conversations: 430, leads: 250, purchases: 65, spent: 2730, revenue: 19800 },
+      { date: '2026-06-30', impressions: 245000, reach: 180000, clicks: 8900, conversations: 550, leads: 320, purchases: 85, spent: 3500, revenue: 25415 }
+    ]
   },
   {
     id: 'ad-camp-2',
@@ -143,7 +149,12 @@ const initialAdCampaigns = [
       purchases: 42,
       spent: 4000,
       revenue: 27300
-    }
+    },
+    resultsHistory: [
+      { date: '2026-06-01', impressions: 14000, reach: 10000, clicks: 1000, conversations: 0, leads: 85, purchases: 10, spent: 1150, revenue: 6200 },
+      { date: '2026-06-15', impressions: 31000, reach: 23000, clicks: 2200, conversations: 0, leads: 190, purchases: 28, spent: 2550, revenue: 17500 },
+      { date: '2026-06-30', impressions: 48000, reach: 35000, clicks: 3400, conversations: 0, leads: 290, purchases: 42, spent: 4000, revenue: 27300 }
+    ]
   },
   {
     id: 'ad-camp-3',
@@ -183,7 +194,12 @@ const initialAdCampaigns = [
       purchases: 32,
       spent: 1500,
       revenue: 2848
-    }
+    },
+    resultsHistory: [
+      { date: '2026-06-05', impressions: 69000, reach: 50000, clicks: 4200, conversations: 320, leads: 60, purchases: 9, spent: 520, revenue: 950 },
+      { date: '2026-06-20', impressions: 138000, reach: 99000, clicks: 8500, conversations: 640, leads: 128, purchases: 21, spent: 1050, revenue: 1980 },
+      { date: '2026-06-30', impressions: 198000, reach: 142000, clicks: 12200, conversations: 920, leads: 185, purchases: 32, spent: 1500, revenue: 2848 }
+    ]
   }
 ];
 
@@ -398,12 +414,14 @@ export const MarketingProvider = ({ children }) => {
 
   // Publicidad Digital (Ad Campaigns + Segmentations + Creatives + Results)
   const addAdCampaign = (adCamp) => {
+    const results = adCamp.results || { impressions: 0, reach: 0, clicks: 0, conversations: 0, leads: 0, purchases: 0, spent: 0, revenue: 0 };
     const newAdCamp = {
       ...adCamp,
       id: `ad-camp-${Date.now()}`,
       segmentation: adCamp.segmentation || { name: 'Público Amplio', country: 'Perú', ageRange: '18-65', gender: 'Todos', language: 'Español', audienceType: 'Amplia', jsonConfig: '{}' },
       creatives: adCamp.creatives || [],
-      results: adCamp.results || { impressions: 0, reach: 0, clicks: 0, conversations: 0, leads: 0, purchases: 0, spent: 0, revenue: 0 }
+      results,
+      resultsHistory: adCamp.resultsHistory || [{ date: new Date().toISOString().split('T')[0], ...results }]
     };
     setAdsCampaigns(prev => [newAdCamp, ...prev]);
   };
@@ -412,6 +430,16 @@ export const MarketingProvider = ({ children }) => {
   };
   const deleteAdCampaign = (id) => {
     setAdsCampaigns(prev => prev.filter(a => a.id !== id));
+  };
+
+  // Appends a dated snapshot instead of overwriting results, so performance over time is queryable
+  const addResultsSnapshot = (campaignId, results) => {
+    const snapshot = { date: new Date().toISOString().split('T')[0], ...results };
+    setAdsCampaigns(prev => prev.map(c => {
+      if (c.id !== campaignId) return c;
+      const history = (c.resultsHistory || []).filter(h => h.date !== snapshot.date);
+      return { ...c, results, resultsHistory: [...history, snapshot] };
+    }));
   };
 
   // Collaborators
@@ -542,6 +570,7 @@ export const MarketingProvider = ({ children }) => {
       addAdCampaign,
       updateAdCampaign,
       deleteAdCampaign,
+      addResultsSnapshot,
       assets,
       addAsset,
       deleteAsset,
