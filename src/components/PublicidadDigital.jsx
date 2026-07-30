@@ -2,13 +2,9 @@ import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
 import {
   Plus, Edit, Trash2, TrendingUp, Eye, MousePointer,
-  DollarSign, MessageCircle, Users, ShoppingCart, Megaphone, Code, RefreshCw, Download
+  DollarSign, MessageCircle, Users, ShoppingCart, Megaphone, Code, RefreshCw, Download, Link2, AlertTriangle
 } from 'lucide-react';
-
-const PLATFORMS = ['Meta Ads', 'Google Ads', 'TikTok Ads'];
-const OBJECTIVES = ['Leads', 'Conversaciones', 'Ventas', 'Tráfico', 'Branding'];
-const AUDIENCE_TYPES = ['Intereses', 'Lookalike', 'Remarketing', 'Amplia'];
-const CREATIVE_FORMATS = ['Imagen', 'Video', 'Carrusel', 'Reel'];
+import { AD_PLATFORMS as PLATFORMS, AD_OBJECTIVES as OBJECTIVES, AD_AUDIENCE_TYPES as AUDIENCE_TYPES, AD_CREATIVE_FORMATS as CREATIVE_FORMATS } from '../constants';
 
 const platformColor = (p) => {
   if (p === 'Meta Ads') return '#1877f2';
@@ -112,7 +108,7 @@ const ResultsTrendChart = ({ history }) => {
 };
 
 export const PublicidadDigital = () => {
-  const { products, collaborators, adsCampaigns, addAdCampaign, updateAdCampaign, deleteAdCampaign, addResultsSnapshot, filters } = useContext(MarketingContext);
+  const { products, collaborators, adsCampaigns, addAdCampaign, updateAdCampaign, deleteAdCampaign, addResultsSnapshot, campaigns, getCollaboratorName, filters } = useContext(MarketingContext);
   const [activeTab, setActiveTab] = useState('campanas');
   const [selectedCampId, setSelectedCampId] = useState(adsCampaigns[0]?.id || null);
   const [isCampModalOpen, setIsCampModalOpen] = useState(false);
@@ -122,6 +118,7 @@ export const PublicidadDigital = () => {
   const [editingCamp, setEditingCamp] = useState(null);
   const [editingCreative, setEditingCreative] = useState(null);
   const [jsonError, setJsonError] = useState('');
+  const [resultsError, setResultsError] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
 
@@ -163,7 +160,7 @@ export const PublicidadDigital = () => {
           platform: 'Meta Ads',
           objective: 'Ventas',
           budget: 2500,
-          owner: 'Mariana Flores',
+          owner: collaborators.find(c => c.name === 'Mariana Flores')?.id || collaborators[0]?.id || '',
           segmentation: {
             name: 'Público Salkantay Aventura',
             country: 'Estados Unidos, Alemania',
@@ -204,7 +201,7 @@ export const PublicidadDigital = () => {
   };
 
   // Form states
-  const [campForm, setCampForm] = useState({ name: '', product: '', objective: 'Leads', platform: 'Meta Ads', budget: 1000, owner: '' });
+  const [campForm, setCampForm] = useState({ name: '', product: '', objective: 'Leads', platform: 'Meta Ads', budget: 1000, owner: '', planCampaignId: '' });
   const [segForm, setSegForm] = useState({ name: '', country: '', ageRange: '', gender: 'Todos', language: '', audienceType: 'Intereses', jsonConfig: '{}' });
   const [creativeForm, setCreativeForm] = useState({ id: '', name: '', format: 'Imagen', language: 'Español', angle: '', hypothesis: '', url: '', metadata: '{}' });
   const [resultsForm, setResultsForm] = useState({ impressions: 0, reach: 0, clicks: 0, conversations: 0, leads: 0, purchases: 0, spent: 0, revenue: 0 });
@@ -226,12 +223,12 @@ export const PublicidadDigital = () => {
   // Campaign CRUD
   const openAddCamp = () => {
     setEditingCamp(null);
-    setCampForm({ name: '', product: products[0]?.id || '', objective: 'Leads', platform: 'Meta Ads', budget: 1000, owner: collaborators[0]?.name || '' });
+    setCampForm({ name: '', product: products[0]?.id || '', objective: 'Leads', platform: 'Meta Ads', budget: 1000, owner: collaborators[0]?.id || '', planCampaignId: '' });
     setIsCampModalOpen(true);
   };
   const openEditCamp = (camp) => {
     setEditingCamp(camp);
-    setCampForm({ name: camp.name, product: camp.product, objective: camp.objective, platform: camp.platform, budget: camp.budget, owner: camp.owner });
+    setCampForm({ name: camp.name, product: camp.product, objective: camp.objective, platform: camp.platform, budget: camp.budget, owner: camp.owner, planCampaignId: camp.planCampaignId || '' });
     setIsCampModalOpen(true);
   };
   const handleCampSubmit = (e) => {
@@ -286,10 +283,21 @@ export const PublicidadDigital = () => {
   const openResultsEdit = () => {
     if (!selectedCamp) return;
     setResultsForm({ ...selectedCamp.results });
+    setResultsError('');
     setIsResultsModalOpen(true);
+  };
+  // A funnel can't grow going down — catches typos like swapping leads and clicks
+  const validateResultsFunnel = (r) => {
+    if (r.reach > r.impressions) return 'El alcance no puede ser mayor que las impresiones.';
+    if (r.clicks > r.impressions) return 'Los clicks no pueden ser más que las impresiones.';
+    if (r.leads > r.clicks) return 'Los leads no pueden ser más que los clicks.';
+    if (r.purchases > r.leads) return 'Las compras no pueden ser más que los leads.';
+    return '';
   };
   const handleResultsSubmit = (e) => {
     e.preventDefault();
+    const error = validateResultsFunnel(resultsForm);
+    if (error) { setResultsError(error); return; }
     addResultsSnapshot(selectedCamp.id, resultsForm);
     setIsResultsModalOpen(false);
   };
@@ -395,9 +403,14 @@ export const PublicidadDigital = () => {
                     {selectedCamp.platform}
                   </span>
                   <span className="badge badge-info">{selectedCamp.objective}</span>
+                  {selectedCamp.planCampaignId && (
+                    <span className="badge badge-purple" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Link2 size={10} /> {campaigns.find(c => c.id === selectedCamp.planCampaignId)?.name || 'Campaña del plan'}
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  Responsable: {selectedCamp.owner} · Presupuesto: ${selectedCamp.budget?.toLocaleString()}
+                  Responsable: {getCollaboratorName(selectedCamp.owner)} · Presupuesto: ${selectedCamp.budget?.toLocaleString()}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -648,11 +661,20 @@ export const PublicidadDigital = () => {
                     <input type="number" value={campForm.budget} onChange={e => setCampForm({ ...campForm, budget: Number(e.target.value) })} className="input" required />
                   </div>
                 </div>
-                <div>
-                  <label className="label">Responsable</label>
-                  <select value={campForm.owner} onChange={e => setCampForm({ ...campForm, owner: e.target.value })} className="input" required>
-                    {collaborators.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
+                <div className="grid-cols-2">
+                  <div>
+                    <label className="label">Responsable</label>
+                    <select value={campForm.owner} onChange={e => setCampForm({ ...campForm, owner: e.target.value })} className="input" required>
+                      {collaborators.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Campaña del Plan (opcional)</label>
+                    <select value={campForm.planCampaignId || ''} onChange={e => setCampForm({ ...campForm, planCampaignId: e.target.value || null })} className="input">
+                      <option value="">Sin vincular</option>
+                      {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
               <div className="modal-footer">
@@ -803,17 +825,24 @@ export const PublicidadDigital = () => {
               <button onClick={() => setIsResultsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.25rem' }}>&times;</button>
             </div>
             <form onSubmit={handleResultsSubmit}>
-              <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                {[
-                  ['Impresiones', 'impressions'], ['Alcance', 'reach'], ['Clicks', 'clicks'],
-                  ['Conversaciones', 'conversations'], ['Leads', 'leads'], ['Compras', 'purchases'],
-                  ['Gasto ($)', 'spent'], ['Ingresos ($)', 'revenue']
-                ].map(([label, key]) => (
-                  <div key={key}>
-                    <label className="label">{label}</label>
-                    <input type="number" step="0.01" value={resultsForm[key]} onChange={e => setResultsForm({ ...resultsForm, [key]: Number(e.target.value) })} className="input" />
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  {[
+                    ['Impresiones', 'impressions'], ['Alcance', 'reach'], ['Clicks', 'clicks'],
+                    ['Conversaciones', 'conversations'], ['Leads', 'leads'], ['Compras', 'purchases'],
+                    ['Gasto ($)', 'spent'], ['Ingresos ($)', 'revenue']
+                  ].map(([label, key]) => (
+                    <div key={key}>
+                      <label className="label">{label}</label>
+                      <input type="number" step="0.01" value={resultsForm[key]} onChange={e => setResultsForm({ ...resultsForm, [key]: Number(e.target.value) })} className="input" />
+                    </div>
+                  ))}
+                </div>
+                {resultsError && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-danger)', fontSize: '0.8rem' }}>
+                    <AlertTriangle size={14} /> {resultsError}
                   </div>
-                ))}
+                )}
               </div>
               <div className="modal-footer">
                 <button type="button" onClick={() => setIsResultsModalOpen(false)} className="btn btn-secondary">Cancelar</button>

@@ -7,25 +7,28 @@ import {
   Compass,
   DollarSign,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Link2
 } from 'lucide-react';
+import { CAMPAIGN_TYPES, AD_OBJECTIVES as OBJECTIVES, PLANNING_PLATFORMS as PLATFORM_OPTIONS, CAMPAIGN_STATUS } from '../constants';
 
-const CAMPAIGN_TYPES = ['Pagada', 'Orgánica', 'Mixta', 'Relaciones Públicas', 'Email Marketing', 'Alianzas'];
-const OBJECTIVES = ['Leads', 'Conversaciones', 'Ventas', 'Tráfico', 'Branding'];
-const PLATFORM_OPTIONS = ['Meta Ads', 'Google Ads', 'TikTok Ads', 'Instagram', 'Facebook', 'YouTube', 'Blog', 'WhatsApp', 'Email', 'Prensa / PR'];
 const OTHER_PRODUCT = 'otro';
 
 export const Planeamiento = () => {
-  const { 
-    products, 
-    collaborators, 
-    campaigns, 
-    addCampaign, 
-    updateCampaign, 
+  const {
+    products,
+    collaborators,
+    campaigns,
+    addCampaign,
+    updateCampaign,
     deleteCampaign,
-    annualPlans, 
+    annualPlans,
     updateAnnualPlan,
-    filters 
+    contentCalendar,
+    adsCampaigns,
+    productions,
+    getCollaboratorName,
+    filters
   } = useContext(MarketingContext);
 
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
@@ -88,7 +91,7 @@ export const Planeamiento = () => {
       objective: 'Leads',
       platforms: [],
       budget: 1000,
-      owner: collaborators[0]?.name || ''
+      owner: collaborators[0]?.id || ''
     });
     setIsCampModalOpen(true);
   };
@@ -124,6 +127,13 @@ export const Planeamiento = () => {
     return products.find(p => p.id === camp.product)?.name || camp.product;
   };
 
+  // Counts what's actually linked back to this plan campaign, so "sincronización" is a real number, not just a claim
+  const linkedCounts = (campaignId) => ({
+    content: contentCalendar.filter(post => post.planCampaignId === campaignId).length,
+    ads: adsCampaigns.filter(ad => ad.planCampaignId === campaignId).length,
+    productions: productions.filter(p => p.planCampaignId === campaignId).length
+  });
+
   const getStatusBadgeClass = (status) => {
     switch(status) {
       case 'Borrador': return 'badge-danger';
@@ -153,7 +163,7 @@ export const Planeamiento = () => {
             </div>
             <p style={{ fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>{currentPlan.objectives}</p>
             <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-              Responsable General: <strong style={{ color: 'var(--text-primary)' }}>{currentPlan.owner}</strong>
+              Responsable General: <strong style={{ color: 'var(--text-primary)' }}>{getCollaboratorName(currentPlan.owner)}</strong>
             </div>
           </div>
         </div>
@@ -203,12 +213,15 @@ export const Planeamiento = () => {
                 <th>Cronograma</th>
                 <th>Presupuesto</th>
                 <th>Responsable</th>
+                <th>Vinculado</th>
                 <th>Estado</th>
                 <th style={{ textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filteredCampaigns.map(camp => {
+                const linked = linkedCounts(camp.id);
+                const linkedTotal = linked.content + linked.ads + linked.productions;
                 return (
                   <tr key={camp.id}>
                     <td>
@@ -232,7 +245,16 @@ export const Planeamiento = () => {
                     <td style={{ fontWeight: 600, color: 'var(--color-success)' }}>
                       ${camp.budget.toLocaleString()}
                     </td>
-                    <td>{camp.owner}</td>
+                    <td>{getCollaboratorName(camp.owner)}</td>
+                    <td>
+                      {linkedTotal > 0 ? (
+                        <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem' }} title={`${linked.content} contenido · ${linked.ads} anuncios · ${linked.productions} producciones`}>
+                          <Link2 size={10} /> {linked.content} · {linked.ads} · {linked.productions}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Sin vincular</span>
+                      )}
+                    </td>
                     <td>
                       <span className={`badge ${getStatusBadgeClass(camp.status)}`}>
                         {camp.status}
@@ -303,14 +325,14 @@ export const Planeamiento = () => {
                 </div>
                 <div>
                   <label className="label">Responsable Principal</label>
-                  <select 
-                    value={planForm.owner} 
-                    onChange={(e) => setPlanForm({...planForm, owner: e.target.value})} 
+                  <select
+                    value={planForm.owner}
+                    onChange={(e) => setPlanForm({...planForm, owner: e.target.value})}
                     className="input"
                     required
                   >
                     {collaborators.map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -490,31 +512,27 @@ export const Planeamiento = () => {
                   </div>
                   <div>
                     <label className="label">Responsable</label>
-                    <select 
-                      value={campForm.owner} 
-                      onChange={(e) => setCampForm({...campForm, owner: e.target.value})} 
+                    <select
+                      value={campForm.owner}
+                      onChange={(e) => setCampForm({...campForm, owner: e.target.value})}
                       className="input"
                       required
                     >
                       {collaborators.map(c => (
-                        <option key={c.id} value={c.name}>{c.name}</option>
+                        <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
                   </div>
                 </div>
                 <div>
                   <label className="label">Estado de la Campaña</label>
-                  <select 
-                    value={campForm.status} 
-                    onChange={(e) => setCampForm({...campForm, status: e.target.value})} 
+                  <select
+                    value={campForm.status}
+                    onChange={(e) => setCampForm({...campForm, status: e.target.value})}
                     className="input"
                     required
                   >
-                    <option value="Borrador">Borrador</option>
-                    <option value="Planificada">Planificada</option>
-                    <option value="Aprobada">Aprobada</option>
-                    <option value="Ejecutándose">Ejecutándose</option>
-                    <option value="Finalizada">Finalizada</option>
+                    {CAMPAIGN_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               </div>

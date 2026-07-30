@@ -1,23 +1,45 @@
 import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
-import { Sliders, Link2, ShoppingBag, Briefcase, BookOpen, Plus, Trash2, RotateCcw, CheckCircle, XCircle } from 'lucide-react';
+import { Sliders, Link2, ShoppingBag, Briefcase, BookOpen, Plus, Edit, Trash2, RotateCcw, CheckCircle, XCircle, UserCircle } from 'lucide-react';
+import { PRODUCT_CATEGORIES } from '../constants';
+
+const emptyProduct = { name: '', description: '', basePrice: 0, category: PRODUCT_CATEGORIES[0], active: true };
 
 export const Configuracion = () => {
-  const { products, setProducts, integrationSettings, setIntegrationSettings, resetToDefault } = useContext(MarketingContext);
-  const [newProduct, setNewProduct] = useState({ name: '', description: '', basePrice: 0 });
-  const [showAddProd, setShowAddProd] = useState(false);
+  const {
+    products, addProduct, updateProduct, deleteProduct,
+    collaborators, currentUserId, setCurrentUserId,
+    integrationSettings, setIntegrationSettings, resetToDefault
+  } = useContext(MarketingContext);
+  const [productForm, setProductForm] = useState(emptyProduct);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [showProductForm, setShowProductForm] = useState(false);
 
-  const handleAddProduct = (e) => {
+  const openAddProduct = () => {
+    setEditingProduct(null);
+    setProductForm(emptyProduct);
+    setShowProductForm(true);
+  };
+
+  const openEditProduct = (prod) => {
+    setEditingProduct(prod);
+    setProductForm({ category: PRODUCT_CATEGORIES[0], active: true, ...prod });
+    setShowProductForm(true);
+  };
+
+  const handleProductSubmit = (e) => {
     e.preventDefault();
-    const id = newProduct.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    setProducts(prev => [...prev, { ...newProduct, id }]);
-    setNewProduct({ name: '', description: '', basePrice: 0 });
-    setShowAddProd(false);
+    if (editingProduct) {
+      updateProduct({ ...editingProduct, ...productForm });
+    } else {
+      addProduct(productForm);
+    }
+    setShowProductForm(false);
   };
 
   const handleDeleteProduct = (id) => {
     if (window.confirm('¿Estás seguro de eliminar este producto turístico? Se perderán las asociaciones en el calendario y campañas.')) {
-      setProducts(prev => prev.filter(p => p.id !== id));
+      deleteProduct(id);
     }
   };
 
@@ -60,6 +82,28 @@ export const Configuracion = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+      {/* Current User */}
+      <div className="card" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <UserCircle size={18} style={{ color: 'var(--color-primary)' }} />
+          <h3>Usuario Actual</h3>
+        </div>
+        <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+          El sistema no tiene inicio de sesión real: esta selección solo indica quién está usando el sistema ahora mismo,
+          para registrar quién creó o actualizó cada campaña, publicación o activo.
+        </p>
+        <select
+          value={currentUserId}
+          onChange={e => setCurrentUserId(e.target.value)}
+          className="input"
+          style={{ maxWidth: '320px' }}
+        >
+          {collaborators.map(c => (
+            <option key={c.id} value={c.id}>{c.name} · {c.role}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Module Integrations */}
       <div>
@@ -124,31 +168,46 @@ export const Configuracion = () => {
             <Sliders size={18} style={{ color: 'var(--color-warning)' }} />
             <h3>Catálogo de Productos Turísticos</h3>
           </div>
-          <button onClick={() => setShowAddProd(v => !v)} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <button onClick={openAddProduct} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <Plus size={12} /> Nuevo Producto
           </button>
         </div>
 
-        {showAddProd && (
-          <form onSubmit={handleAddProduct} className="card" style={{ padding: '1.25rem', marginBottom: '1rem', border: '1px dashed var(--border-focus)' }}>
-            <h4 style={{ marginBottom: '1rem' }}>Agregar Nuevo Producto Turístico</h4>
+        {showProductForm && (
+          <form onSubmit={handleProductSubmit} className="card" style={{ padding: '1.25rem', marginBottom: '1rem', border: '1px dashed var(--border-focus)' }}>
+            <h4 style={{ marginBottom: '1rem' }}>{editingProduct ? 'Editar Producto Turístico' : 'Agregar Nuevo Producto Turístico'}</h4>
             <div className="grid-cols-3" style={{ gap: '1rem', marginBottom: '1rem' }}>
               <div style={{ gridColumn: '1 / 3' }}>
                 <label className="label">Nombre del Producto</label>
-                <input type="text" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="input" required placeholder="Ej. Pallay Punchu" />
+                <input type="text" value={productForm.name} onChange={e => setProductForm({ ...productForm, name: e.target.value })} className="input" required placeholder="Ej. Pallay Punchu" disabled={!!editingProduct} />
               </div>
               <div>
                 <label className="label">Precio Base (USD $)</label>
-                <input type="number" value={newProduct.basePrice} onChange={e => setNewProduct({ ...newProduct, basePrice: Number(e.target.value) })} className="input" required min="0" />
+                <input type="number" value={productForm.basePrice} onChange={e => setProductForm({ ...productForm, basePrice: Number(e.target.value) })} className="input" required min="0" />
+              </div>
+            </div>
+            <div className="grid-cols-2" style={{ gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <label className="label">Categoría</label>
+                <select value={productForm.category} onChange={e => setProductForm({ ...productForm, category: e.target.value })} className="input">
+                  {PRODUCT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label">Estado</label>
+                <select value={productForm.active ? 'true' : 'false'} onChange={e => setProductForm({ ...productForm, active: e.target.value === 'true' })} className="input">
+                  <option value="true">Activo</option>
+                  <option value="false">Inactivo</option>
+                </select>
               </div>
             </div>
             <div style={{ marginBottom: '1rem' }}>
               <label className="label">Descripción del Tour</label>
-              <input type="text" value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} className="input" required placeholder="Breve descripción del producto" />
+              <input type="text" value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })} className="input" required placeholder="Breve descripción del producto" />
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => setShowAddProd(false)} className="btn btn-secondary">Cancelar</button>
-              <button type="submit" className="btn btn-primary">Guardar Producto</button>
+              <button type="button" onClick={() => setShowProductForm(false)} className="btn btn-secondary">Cancelar</button>
+              <button type="submit" className="btn btn-primary">{editingProduct ? 'Guardar Cambios' : 'Guardar Producto'}</button>
             </div>
           </form>
         )}
@@ -159,22 +218,42 @@ export const Configuracion = () => {
               <tr>
                 <th>ID</th>
                 <th>Nombre del Tour</th>
+                <th>Categoría</th>
                 <th>Descripción</th>
                 <th>Precio Base</th>
+                <th>Estado</th>
                 <th style={{ textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {products.map(prod => (
-                <tr key={prod.id}>
-                  <td><code style={{ fontSize: '0.75rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-secondary)', padding: '0.1rem 0.35rem', borderRadius: '3px' }}>{prod.id}</code></td>
+                <tr key={prod.id} style={{ opacity: prod.active === false ? 0.55 : 1 }}>
+                  <td>
+                    <code
+                      style={{ fontSize: '0.75rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-secondary)', padding: '0.1rem 0.35rem', borderRadius: '3px' }}
+                      title={prod.createdAt ? `Creado: ${new Date(prod.createdAt).toLocaleString('es-PE')}` : undefined}
+                    >
+                      {prod.id}
+                    </code>
+                  </td>
                   <td style={{ fontWeight: 600 }}>{prod.name}</td>
+                  <td><span className="badge badge-info">{prod.category || '—'}</span></td>
                   <td style={{ color: 'var(--text-secondary)', fontSize: '0.825rem', maxWidth: '300px' }}>{prod.description}</td>
                   <td style={{ fontWeight: 700, color: 'var(--color-success)' }}>${prod.basePrice}</td>
+                  <td>
+                    <span className={`badge ${prod.active === false ? 'badge-danger' : 'badge-success'}`}>
+                      {prod.active === false ? 'Inactivo' : 'Activo'}
+                    </span>
+                  </td>
                   <td style={{ textAlign: 'right' }}>
-                    <button onClick={() => handleDeleteProduct(prod.id)} className="btn btn-danger btn-sm" style={{ padding: '0.35rem' }}>
-                      <Trash2 size={12} />
-                    </button>
+                    <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                      <button onClick={() => openEditProduct(prod)} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem' }}>
+                        <Edit size={12} />
+                      </button>
+                      <button onClick={() => handleDeleteProduct(prod.id)} className="btn btn-danger btn-sm" style={{ padding: '0.35rem' }}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

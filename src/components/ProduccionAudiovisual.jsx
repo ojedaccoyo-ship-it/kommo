@@ -1,16 +1,18 @@
 import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Calendar, 
-  ChevronLeft, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  ChevronLeft,
   ChevronRight,
   Film,
   Camera,
-  Layers
+  Layers,
+  Link2
 } from 'lucide-react';
+import { PRODUCTION_TYPES } from '../constants';
 
 const columns = [
   { id: 'Programado', name: 'Programado', color: '#6b7280' },
@@ -21,13 +23,14 @@ const columns = [
 ];
 
 export const ProduccionAudiovisual = () => {
-  const { 
-    products, 
-    productions, 
-    addProduction, 
-    updateProduction, 
+  const {
+    products,
+    productions,
+    addProduction,
+    updateProduction,
     deleteProduction,
-    filters 
+    campaigns,
+    filters
   } = useContext(MarketingContext);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,7 +45,8 @@ export const ProduccionAudiovisual = () => {
     dateRecording: '',
     dateEditing: '',
     datePublishing: '',
-    status: 'Programado'
+    status: 'Programado',
+    planCampaignId: ''
   });
 
   // Filter productions based on global filters (product only since there's no owner/channel direct link)
@@ -60,14 +64,15 @@ export const ProduccionAudiovisual = () => {
       dateRecording: new Date().toISOString().split('T')[0],
       dateEditing: new Date().toISOString().split('T')[0],
       datePublishing: new Date().toISOString().split('T')[0],
-      status: 'Programado'
+      status: 'Programado',
+      planCampaignId: ''
     });
     setIsModalOpen(true);
   };
 
   const openEditModal = (prod) => {
     setEditingProd(prod);
-    setForm({ ...prod });
+    setForm({ planCampaignId: '', ...prod });
     setIsModalOpen(true);
   };
 
@@ -169,6 +174,11 @@ export const ProduccionAudiovisual = () => {
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {prod.planCampaignId && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-purple)' }}>
+                            <Link2 size={10} /> {campaigns.find(c => c.id === prod.planCampaignId)?.name || 'Campaña del plan'}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                           <Calendar size={10} /> Grabación: {prod.dateRecording}
                         </div>
@@ -272,17 +282,13 @@ export const ProduccionAudiovisual = () => {
                   </div>
                   <div>
                     <label className="label">Tipo de Producción</label>
-                    <select 
-                      value={form.type} 
-                      onChange={(e) => setForm({...form, type: e.target.value})} 
+                    <select
+                      value={form.type}
+                      onChange={(e) => setForm({...form, type: e.target.value})}
                       className="input"
                       required
                     >
-                      <option value="Fotografía">Fotografía</option>
-                      <option value="Reel">Reel</option>
-                      <option value="Video horizontal">Video horizontal</option>
-                      <option value="Video vertical">Video vertical</option>
-                      <option value="Drone">Drone y Aéreos</option>
+                      {PRODUCTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                 </div>
@@ -320,20 +326,33 @@ export const ProduccionAudiovisual = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="label">Estado del Kanban</label>
-                  <select 
-                    value={form.status} 
-                    onChange={(e) => setForm({...form, status: e.target.value})} 
-                    className="input"
-                    required
-                  >
-                    <option value="Programado">Programado</option>
-                    <option value="Grabación">Grabación</option>
-                    <option value="Edición">Edición</option>
-                    <option value="Revisión">Revisión</option>
-                    <option value="Finalizado">Finalizado</option>
-                  </select>
+                <div className="grid-cols-2">
+                  <div>
+                    <label className="label">Estado del Kanban</label>
+                    <select
+                      value={form.status}
+                      onChange={(e) => setForm({...form, status: e.target.value})}
+                      className="input"
+                      required
+                    >
+                      <option value="Programado">Programado</option>
+                      <option value="Grabación">Grabación</option>
+                      <option value="Edición">Edición</option>
+                      <option value="Revisión">Revisión</option>
+                      <option value="Finalizado">Finalizado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Campaña del Plan (opcional)</label>
+                    <select
+                      value={form.planCampaignId || ''}
+                      onChange={(e) => setForm({...form, planCampaignId: e.target.value || null})}
+                      className="input"
+                    >
+                      <option value="">Sin vincular</option>
+                      {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
               <div className="modal-footer">

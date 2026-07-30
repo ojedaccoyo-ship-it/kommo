@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
 import { Plus, Trash2, Search, FolderOpen, Image, Film, Palette, Volume2, Layout, Star, Database, Download } from 'lucide-react';
+import { ASSET_TYPES } from '../constants';
 
 const TYPE_ICONS = {
   Fotos: Image, Videos: Film, Diseños: Palette, Logos: Star, Audios: Volume2, Plantillas: Layout
@@ -9,10 +10,9 @@ const TYPE_COLORS = {
   Fotos: 'var(--color-primary)', Videos: 'var(--color-purple)', Diseños: 'var(--color-warning)',
   Logos: 'var(--color-teal)', Audios: 'var(--color-success)', Plantillas: 'var(--color-danger)'
 };
-const ASSET_TYPES = ['Fotos', 'Videos', 'Diseños', 'Logos', 'Audios', 'Plantillas'];
 
 export const ActivosDigitales = () => {
-  const { products, collaborators, assets, addAsset, deleteAsset, filters } = useContext(MarketingContext);
+  const { products, collaborators, assets, addAsset, deleteAsset, getCollaboratorName, filters } = useContext(MarketingContext);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,7 +21,7 @@ export const ActivosDigitales = () => {
   const filtered = assets.filter(a => {
     const matchProduct = filters.productId === 'all' || a.product === filters.productId;
     const matchType = typeFilter === 'all' || a.type === typeFilter;
-    const matchSearch = a.name.toLowerCase().includes(search.toLowerCase()) || a.author.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = a.name.toLowerCase().includes(search.toLowerCase()) || getCollaboratorName(a.author).toLowerCase().includes(search.toLowerCase());
     return matchProduct && matchType && matchSearch;
   });
 
@@ -36,13 +36,10 @@ export const ActivosDigitales = () => {
       mimeType = 'application/json';
     } else if (format === 'csv') {
       const headers = ['id', 'name', 'type', 'product', 'date', 'author', 'url', 'hypothesis', 'targetSegment'];
-      const rows = assets.map(a => 
-        headers.map(header => {
-          let val = a[header] || '';
-          // Escape quotes for CSV
-          return `"${String(val).replace(/"/g, '""')}"`;
-        }).join(',')
-      );
+      const rows = assets.map(a => {
+        const values = { ...a, author: getCollaboratorName(a.author) };
+        return headers.map(header => `"${String(values[header] || '').replace(/"/g, '""')}"`).join(',');
+      });
       content = [headers.join(','), ...rows].join('\n');
       filename += '.csv';
       mimeType = 'text/csv';
@@ -64,7 +61,7 @@ export const ActivosDigitales = () => {
   };
 
   const openAdd = () => {
-    setForm({ name: '', type: 'Fotos', product: products[0]?.id || '', date: new Date().toISOString().split('T')[0], author: collaborators[0]?.name || '', url: '', hypothesis: '', targetSegment: '' });
+    setForm({ name: '', type: 'Fotos', product: products[0]?.id || '', date: new Date().toISOString().split('T')[0], author: collaborators[0]?.id || '', url: '', hypothesis: '', targetSegment: '' });
     setIsModalOpen(true);
   };
 
@@ -198,7 +195,7 @@ export const ActivosDigitales = () => {
                     💡 {asset.hypothesis || 'Sin hipótesis de conversión'}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-light)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
-                    <span style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>👤 {asset.author}</span>
+                    <span style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>👤 {getCollaboratorName(asset.author)}</span>
                     <button onClick={() => deleteAsset(asset.id)} className="btn btn-danger btn-sm" style={{ padding: '0.25rem' }}>
                       <Trash2 size={11} />
                     </button>
@@ -246,7 +243,7 @@ export const ActivosDigitales = () => {
                   <div>
                     <label className="label">Autor / Creador</label>
                     <select value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} className="input" required>
-                      {collaborators.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      {collaborators.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
                 </div>

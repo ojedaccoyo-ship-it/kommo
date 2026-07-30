@@ -3,7 +3,7 @@ import { MarketingContext } from '../context/MarketingContext';
 import { FileSpreadsheet, FileText, Download, Calendar, TrendingUp, Users, CheckCircle } from 'lucide-react';
 
 export const Informes = () => {
-  const { products, contentCalendar, adsCampaigns, campaigns, collaborators, getCollaboratorCompliance, getProductMetrics, filters } = useContext(MarketingContext);
+  const { products, contentCalendar, adsCampaigns, campaigns, collaborators, getCollaboratorCompliance, getCollaboratorName, getProductMetrics, filters } = useContext(MarketingContext);
   const [reportType, setReportType] = useState('mensual');
   const [reportProduct, setReportProduct] = useState('all');
   const [generado, setGenerado] = useState(false);
@@ -133,7 +133,7 @@ export const Informes = () => {
                         <td style={{ fontSize: '0.8rem' }}>{post.contentType}</td>
                         <td style={{ fontSize: '0.8rem' }}>{prod?.name}</td>
                         <td style={{ fontSize: '0.775rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={post.copy}>{post.copy}</td>
-                        <td style={{ fontSize: '0.8rem' }}>{post.owner}</td>
+                        <td style={{ fontSize: '0.8rem' }}>{getCollaboratorName(post.owner)}</td>
                         <td><span className="badge badge-success">Publicado</span></td>
                       </tr>
                     );
@@ -179,7 +179,7 @@ export const Informes = () => {
             <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>👥 Cumplimiento del Equipo</h3>
             <div className="grid-cols-3">
               {collaborators.map(col => {
-                const comp = getCollaboratorCompliance(col.name);
+                const comp = getCollaboratorCompliance(col.id);
                 return (
                   <div key={col.id} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

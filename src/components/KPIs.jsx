@@ -56,7 +56,7 @@ export const KPIs = () => {
   const topChannel = Object.entries(channelBreakdown).sort((a, b) => b[1] - a[1])[0];
 
   // Personnel KPIs
-  const compliances = collaborators.map(col => getCollaboratorCompliance(col.name));
+  const compliances = collaborators.map(col => getCollaboratorCompliance(col.id));
   const avgCompliance = compliances.length > 0 ? Math.round(compliances.reduce((a, c) => a + c.rate, 0) / compliances.length) : 0;
 
   return (
@@ -134,7 +134,7 @@ export const KPIs = () => {
             <h4 style={{ marginBottom: '1rem' }}>Productividad Individual</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {collaborators.map(col => {
-                const comp = getCollaboratorCompliance(col.name);
+                const comp = getCollaboratorCompliance(col.id);
                 return (
                   <div key={col.id} style={{ display: 'grid', gridTemplateColumns: '180px 1fr 60px', alignItems: 'center', gap: '0.75rem' }}>
                     <div>

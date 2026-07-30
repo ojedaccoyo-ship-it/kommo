@@ -1,8 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
 import { Plus, Edit, Trash2, Users2, CheckCircle, AlertCircle, Code } from 'lucide-react';
-
-const ROLES = ['Publicista', 'Community Manager', 'Diseñador', 'Editor', 'Fotógrafo'];
+import { COLLABORATOR_ROLES as ROLES } from '../constants';
 
 const roleColor = (role) => {
   switch(role) {
@@ -35,7 +34,7 @@ export const PersonalMarketing = () => {
   const [selectedCol, setSelectedCol] = useState(collaborators[0]?.id || null);
   const [jsonError, setJsonError] = useState('');
 
-  const filteredCols = collaborators.filter(c => filters.owner === 'all' || c.name === filters.owner);
+  const filteredCols = collaborators.filter(c => filters.owner === 'all' || c.id === filters.owner);
 
   const validateJson = (str) => {
     try { JSON.parse(str || '{}'); setJsonError(''); return true; }
@@ -65,7 +64,7 @@ export const PersonalMarketing = () => {
   };
 
   const selectedColObj = collaborators.find(c => c.id === selectedCol) || filteredCols[0];
-  const compliance = selectedColObj ? getCollaboratorCompliance(selectedColObj.name) : null;
+  const compliance = selectedColObj ? getCollaboratorCompliance(selectedColObj.id) : null;
 
   return (
     <div style={{ display: 'flex', gap: '1.25rem', height: '100%' }}>
@@ -80,7 +79,7 @@ export const PersonalMarketing = () => {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto' }}>
           {filteredCols.map(col => {
-            const comp = getCollaboratorCompliance(col.name);
+            const comp = getCollaboratorCompliance(col.id);
             const isSelected = col.id === selectedColObj?.id;
             return (
               <div

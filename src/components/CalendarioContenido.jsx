@@ -13,22 +13,24 @@ import {
   Eye,
   Upload,
   FileText,
-  Download
+  Download,
+  Link2
 } from 'lucide-react';
+import { CHANNELS as CHANNEL_OPTIONS, CONTENT_TYPES as CONTENT_TYPE_OPTIONS, CONTENT_STATUS } from '../constants';
 
-const CHANNEL_OPTIONS = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Blog', 'WhatsApp'];
-const CONTENT_TYPE_OPTIONS = ['Imagen', 'Reel', 'Video', 'Carrusel', 'Historia', 'Artículo'];
 const TEMPLATE_ROWS = 200;
 
 export const CalendarioContenido = () => {
-  const { 
-    products, 
-    collaborators, 
-    contentCalendar, 
-    addContent, 
-    updateContent, 
+  const {
+    products,
+    collaborators,
+    contentCalendar,
+    addContent,
+    updateContent,
     deleteContent,
-    filters 
+    campaigns,
+    getCollaboratorName,
+    filters
   } = useContext(MarketingContext);
 
   const [viewMode, setViewMode] = useState('calendar'); // 'calendar' or 'list'
@@ -51,6 +53,14 @@ export const CalendarioContenido = () => {
     return match ? match.id : trimmed;
   };
 
+  // Same idea for Responsable: typed text can be the collaborator's name (what a human types) or their id
+  const resolveOwnerId = (value) => {
+    if (!value) return collaborators[0]?.id || '';
+    const trimmed = String(value).trim();
+    const match = collaborators.find(c => c.id.toLowerCase() === trimmed.toLowerCase() || c.name.toLowerCase() === trimmed.toLowerCase());
+    return match ? match.id : trimmed;
+  };
+
   const parseLines = (text) => {
     const lines = text.split('\n');
     const parsed = [];
@@ -69,10 +79,11 @@ export const CalendarioContenido = () => {
           contentType: contentType || 'Reel',
           product: resolveProductId(product),
           copy: copy || 'Sin copy',
-          owner: owner || collaborators[0]?.name || '',
+          owner: resolveOwnerId(owner),
           status: 'Idea',
           designUrl: '',
-          publishUrl: ''
+          publishUrl: '',
+          planCampaignId: null
         });
       }
     });
@@ -110,10 +121,11 @@ export const CalendarioContenido = () => {
         contentType: contentType || 'Reel',
         product: resolveProductId(productRaw),
         copy: copy || 'Sin copy',
-        owner: owner || collaborators[0]?.name || '',
+        owner: resolveOwnerId(owner),
         status: 'Idea',
         designUrl: '',
-        publishUrl: ''
+        publishUrl: '',
+        planCampaignId: null
       });
     });
     return parsed;
@@ -181,19 +193,6 @@ export const CalendarioContenido = () => {
     workbook.creator = 'Kommo ERP - Módulo de Marketing';
     workbook.created = today;
 
-    // --- Instructions sheet ---
-    const info = workbook.addWorksheet('Instrucciones');
-    info.columns = [{ width: 95 }];
-    info.addRow(['Cómo usar esta plantilla']).font = { bold: true, size: 14 };
-    info.addRow([]);
-    [
-      '1. Ve a la hoja "Cronograma" y llena una fila por publicación planificada.',
-      '2. Usa los menús desplegables en Canal, Tipo de Contenido, Producto y Responsable — evitan errores de escritura.',
-      '3. La Fecha debe tener el formato AAAA-MM-DD, por ejemplo 2026-08-15.',
-      '4. No borres ni renombres la fila de encabezados (fila 1).',
-      '5. Guarda el archivo y súbelo de vuelta en "Importar Cronograma" → "Subir Archivo".'
-    ].forEach(line => { info.addRow([line]); });
-
     // --- Cronograma sheet ---
     const sheet = workbook.addWorksheet('Cronograma');
     sheet.columns = [
@@ -239,10 +238,15 @@ export const CalendarioContenido = () => {
   };
 
   const exportCalendar = () => {
-    const headers = ['id', 'publishDate', 'channel', 'contentType', 'product', 'owner', 'status', 'copy', 'designUrl', 'publishUrl'];
-    const rows = filteredPosts.map(p =>
-      headers.map(h => `"${String(p[h] || '').replace(/"/g, '""')}"`).join(',')
-    );
+    const headers = ['id', 'publishDate', 'channel', 'contentType', 'product', 'owner', 'planCampaign', 'status', 'copy', 'designUrl', 'publishUrl'];
+    const rows = filteredPosts.map(p => {
+      const values = {
+        ...p,
+        owner: getCollaboratorName(p.owner),
+        planCampaign: campaigns.find(c => c.id === p.planCampaignId)?.name || ''
+      };
+      return headers.map(h => `"${String(values[h] || '').replace(/"/g, '""')}"`).join(',');
+    });
     const csv = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -264,7 +268,8 @@ export const CalendarioContenido = () => {
     status: 'Idea',
     copy: '',
     designUrl: '',
-    publishUrl: ''
+    publishUrl: '',
+    planCampaignId: ''
   });
 
   // Filter content
@@ -286,18 +291,19 @@ export const CalendarioContenido = () => {
       channel: 'Instagram',
       product: products[0]?.id || '',
       contentType: 'Reel',
-      owner: collaborators[0]?.name || '',
+      owner: collaborators[0]?.id || '',
       status: 'Idea',
       copy: '',
       designUrl: '',
-      publishUrl: ''
+      publishUrl: '',
+      planCampaignId: ''
     });
     setIsModalOpen(true);
   };
 
   const openEditModal = (post) => {
     setEditingPost(post);
-    setForm({ ...post });
+    setForm({ planCampaignId: '', ...post });
     setIsModalOpen(true);
   };
 
@@ -476,6 +482,7 @@ export const CalendarioContenido = () => {
                   <th>Producto</th>
                   <th>Copy / Descripción</th>
                   <th>Responsable</th>
+                  <th>Campaña</th>
                   <th>Estado</th>
                   <th>Adjuntos</th>
                   <th style={{ textAlign: 'right' }}>Acciones</th>
@@ -484,6 +491,7 @@ export const CalendarioContenido = () => {
               <tbody>
                 {filteredPosts.map(post => {
                   const prod = products.find(p => p.id === post.product);
+                  const linkedCampaign = campaigns.find(c => c.id === post.planCampaignId);
                   return (
                     <tr key={post.id}>
                       <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{post.publishDate}</td>
@@ -507,7 +515,16 @@ export const CalendarioContenido = () => {
                       <td style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={post.copy}>
                         {post.copy}
                       </td>
-                      <td>{post.owner}</td>
+                      <td>{getCollaboratorName(post.owner)}</td>
+                      <td>
+                        {linkedCampaign ? (
+                          <span className="badge badge-purple" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem' }} title={linkedCampaign.name}>
+                            <Link2 size={10} /> {linkedCampaign.name}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                        )}
+                      </td>
                       <td>
                         <span className={`badge ${getStatusBadgeClass(post.status)}`}>
                           {post.status}
@@ -581,18 +598,13 @@ export const CalendarioContenido = () => {
                   </div>
                   <div>
                     <label className="label">Canal de Difusión</label>
-                    <select 
-                      value={form.channel} 
-                      onChange={(e) => setForm({...form, channel: e.target.value})} 
+                    <select
+                      value={form.channel}
+                      onChange={(e) => setForm({...form, channel: e.target.value})}
                       className="input"
                       required
                     >
-                      <option value="Facebook">Facebook</option>
-                      <option value="Instagram">Instagram</option>
-                      <option value="TikTok">TikTok</option>
-                      <option value="YouTube">YouTube</option>
-                      <option value="Blog">Blog</option>
-                      <option value="WhatsApp">WhatsApp</option>
+                      {CHANNEL_OPTIONS.map(ch => <option key={ch} value={ch}>{ch}</option>)}
                     </select>
                   </div>
                 </div>
@@ -613,18 +625,13 @@ export const CalendarioContenido = () => {
                   </div>
                   <div>
                     <label className="label">Tipo de Contenido</label>
-                    <select 
-                      value={form.contentType} 
-                      onChange={(e) => setForm({...form, contentType: e.target.value})} 
+                    <select
+                      value={form.contentType}
+                      onChange={(e) => setForm({...form, contentType: e.target.value})}
                       className="input"
                       required
                     >
-                      <option value="Imagen">Imagen</option>
-                      <option value="Reel">Reel</option>
-                      <option value="Video">Video</option>
-                      <option value="Carrusel">Carrusel</option>
-                      <option value="Historia">Historia</option>
-                      <option value="Artículo">Artículo</option>
+                      {CONTENT_TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                 </div>
@@ -632,32 +639,42 @@ export const CalendarioContenido = () => {
                 <div className="grid-cols-2">
                   <div>
                     <label className="label">Responsable</label>
-                    <select 
-                      value={form.owner} 
-                      onChange={(e) => setForm({...form, owner: e.target.value})} 
+                    <select
+                      value={form.owner}
+                      onChange={(e) => setForm({...form, owner: e.target.value})}
                       className="input"
                       required
                     >
                       {collaborators.map(c => (
-                        <option key={c.id} value={c.name}>{c.name}</option>
+                        <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
                   </div>
                   <div>
                     <label className="label">Estado del Flujo</label>
-                    <select 
-                      value={form.status} 
-                      onChange={(e) => setForm({...form, status: e.target.value})} 
+                    <select
+                      value={form.status}
+                      onChange={(e) => setForm({...form, status: e.target.value})}
                       className="input"
                       required
                     >
-                      <option value="Idea">Idea</option>
-                      <option value="Diseño">Diseño</option>
-                      <option value="Revisión">Revisión</option>
-                      <option value="Programado">Programado</option>
-                      <option value="Publicado">Publicado</option>
+                      {CONTENT_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="label">Campaña del Plan (opcional)</label>
+                  <select
+                    value={form.planCampaignId || ''}
+                    onChange={(e) => setForm({...form, planCampaignId: e.target.value || null})}
+                    className="input"
+                  >
+                    <option value="">Sin vincular</option>
+                    {campaigns.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -807,7 +824,7 @@ export const CalendarioContenido = () => {
                               <td>{post.contentType}</td>
                               <td>{post.product}</td>
                               <td style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.copy}</td>
-                              <td>{post.owner}</td>
+                              <td>{getCollaboratorName(post.owner)}</td>
                             </tr>
                           ))}
                         </tbody>

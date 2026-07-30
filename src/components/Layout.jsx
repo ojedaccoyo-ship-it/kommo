@@ -68,7 +68,7 @@ export const Layout = ({ activeTab, setActiveTab, children }) => {
             gap: '0.5rem',
             fontWeight: 800
           }}>
-            KOMMO ERP
+            SISTEMA DE MARKETING
           </h1>
           <span style={{
             fontSize: '0.7rem',
@@ -220,7 +220,7 @@ export const Layout = ({ activeTab, setActiveTab, children }) => {
               >
                 <option value="all">👤 Todos los Responsables</option>
                 {collaborators.map(c => (
-                  <option key={c.id} value={c.name}>👤 {c.name}</option>
+                  <option key={c.id} value={c.id}>👤 {c.name}</option>
                 ))}
               </select>
             </div>

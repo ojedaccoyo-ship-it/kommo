@@ -79,10 +79,10 @@ export const Dashboard = () => {
 
   // 3. TEAM COMPLIANCE CALCULATION
   const activeCollaborators = collaborators.filter(col => {
-    return filters.owner === 'all' || col.name === filters.owner;
+    return filters.owner === 'all' || col.id === filters.owner;
   });
 
-  const compliances = activeCollaborators.map(col => getCollaboratorCompliance(col.name).rate);
+  const compliances = activeCollaborators.map(col => getCollaboratorCompliance(col.id).rate);
   const avgCompliance = compliances.length > 0 
     ? Math.round(compliances.reduce((a, b) => a + b, 0) / compliances.length) 
     : 0;

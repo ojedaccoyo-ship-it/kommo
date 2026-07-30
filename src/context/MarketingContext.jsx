@@ -4,13 +4,15 @@ export const MarketingContext = createContext();
 
 // Initial Mock Data
 const initialProducts = [
-  { id: 'machu-picchu', name: 'Machu Picchu', description: 'Tour de día completo o Camino Inca Corto al santuario histórico.', basePrice: 299 },
-  { id: 'valle-sagrado', name: 'Valle Sagrado', description: 'Tour arqueológico y vivencial en el valle de los Incas.', basePrice: 149 },
-  { id: 'humantay', name: 'Laguna Humantay', description: 'Caminata de aventura y paisajes alpinos turquesas.', basePrice: 89 },
-  { id: 'camino-inca', name: 'Camino Inca 4D/3N', description: 'El sendero de trekking más famoso de Sudamérica.', basePrice: 650 },
-  { id: 'city-tour', name: 'Cusco City Tour', description: 'Exploración cultural e histórica en el centro de la ciudad y templos aledaños.', basePrice: 49 }
+  { id: 'machu-picchu', name: 'Machu Picchu', description: 'Tour de día completo o Camino Inca Corto al santuario histórico.', basePrice: 299, category: 'Cultural', active: true },
+  { id: 'valle-sagrado', name: 'Valle Sagrado', description: 'Tour arqueológico y vivencial en el valle de los Incas.', basePrice: 149, category: 'Cultural', active: true },
+  { id: 'humantay', name: 'Laguna Humantay', description: 'Caminata de aventura y paisajes alpinos turquesas.', basePrice: 89, category: 'Aventura', active: true },
+  { id: 'camino-inca', name: 'Camino Inca 4D/3N', description: 'El sendero de trekking más famoso de Sudamérica.', basePrice: 650, category: 'Trekking', active: true },
+  { id: 'city-tour', name: 'Cusco City Tour', description: 'Exploración cultural e histórica en el centro de la ciudad y templos aledaños.', basePrice: 49, category: 'City Tour', active: true }
 ];
 
+// Collaborator ids (col-1..col-5) are the source of truth for "responsable" across every module —
+// campaigns/content/ads/assets store this id, never the name, so a renamed collaborator doesn't break history.
 const initialCollaborators = [
   { id: 'col-1', name: 'Alejandro Ramos', role: 'Publicista', dateJoined: '2025-01-15', status: 'Activo', obligations: { posts: 15, reels: 12, videos: 0, reports: 1 }, metadata: '{\n  "commission_rate": 0.05,\n  "preferred_channel": "Meta Ads"\n}' },
   { id: 'col-2', name: 'Mariana Flores', role: 'Community Manager', dateJoined: '2025-02-10', status: 'Activo', obligations: { posts: 25, reels: 15, videos: 2, reports: 1 }, metadata: '{\n  "languages": ["Español", "Inglés"],\n  "experience_years": 3\n}' },
@@ -20,30 +22,30 @@ const initialCollaborators = [
 ];
 
 const initialAnnualPlans = [
-  { id: 'plan-2026', year: 2026, owner: 'Alejandro Ramos', objectives: 'Incrementar el volumen de leads en un 40% interanual y optimizar el CAC en campañas digitales para productos estrella.', budget: 120000 }
+  { id: 'plan-2026', year: 2026, owner: 'col-1', objectives: 'Incrementar el volumen de leads en un 40% interanual y optimizar el CAC en campañas digitales para productos estrella.', budget: 120000 }
 ];
 
 const initialCampaigns = [
-  { id: 'camp-1', name: 'Inti Raymi Especial 2026', product: 'machu-picchu', season: 'Temporada Alta', startDate: '2026-05-01', endDate: '2026-06-25', status: 'Ejecutándose', budget: 15000, owner: 'Alejandro Ramos' },
-  { id: 'camp-2', name: 'Aventura Humantay Invierno', product: 'humantay', season: 'Temporada Media', startDate: '2026-06-01', endDate: '2026-08-31', status: 'Ejecutándose', budget: 8000, owner: 'Mariana Flores' },
-  { id: 'camp-3', name: 'Cyber Inca 2026', product: 'camino-inca', season: 'Cyber Week', startDate: '2026-07-10', endDate: '2026-07-17', status: 'Planificada', budget: 12000, owner: 'Alejandro Ramos' },
-  { id: 'camp-4', name: 'Cultura Cusco Histórico', product: 'city-tour', season: 'Todo el año', startDate: '2026-02-01', endDate: '2026-12-31', status: 'Ejecutándose', budget: 5000, owner: 'Mariana Flores' },
-  { id: 'camp-5', name: 'Valle Sagrado y Maras Moray', product: 'valle-sagrado', season: 'Primavera', startDate: '2026-09-01', endDate: '2026-11-30', status: 'Borrador', budget: 6000, owner: 'Diego Quispe' }
+  { id: 'camp-1', name: 'Inti Raymi Especial 2026', product: 'machu-picchu', season: 'Temporada Alta', startDate: '2026-05-01', endDate: '2026-06-25', status: 'Ejecutándose', budget: 15000, owner: 'col-1', type: 'Pagada', objective: 'Ventas', platforms: ['Meta Ads'] },
+  { id: 'camp-2', name: 'Aventura Humantay Invierno', product: 'humantay', season: 'Temporada Media', startDate: '2026-06-01', endDate: '2026-08-31', status: 'Ejecutándose', budget: 8000, owner: 'col-2', type: 'Mixta', objective: 'Conversaciones', platforms: ['TikTok Ads', 'Instagram'] },
+  { id: 'camp-3', name: 'Cyber Inca 2026', product: 'camino-inca', season: 'Cyber Week', startDate: '2026-07-10', endDate: '2026-07-17', status: 'Planificada', budget: 12000, owner: 'col-1', type: 'Pagada', objective: 'Leads', platforms: ['Google Ads'] },
+  { id: 'camp-4', name: 'Cultura Cusco Histórico', product: 'city-tour', season: 'Todo el año', startDate: '2026-02-01', endDate: '2026-12-31', status: 'Ejecutándose', budget: 5000, owner: 'col-2', type: 'Orgánica', objective: 'Branding', platforms: ['Instagram', 'Blog'] },
+  { id: 'camp-5', name: 'Valle Sagrado y Maras Moray', product: 'valle-sagrado', season: 'Primavera', startDate: '2026-09-01', endDate: '2026-11-30', status: 'Borrador', budget: 6000, owner: 'col-3', type: 'Pagada', objective: 'Tráfico', platforms: ['Meta Ads'] }
 ];
 
 const initialContentCalendar = [
-  { id: 'post-1', publishDate: '2026-06-15', channel: 'Instagram', product: 'machu-picchu', contentType: 'Reel', owner: 'Mariana Flores', status: 'Publicado', copy: '¿Listo para ver el amanecer en Machu Picchu? 🌅 Reserva tu tour hoy.', designUrl: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800', publishUrl: 'https://instagram.com/reel/1234' },
-  { id: 'post-2', publishDate: '2026-06-16', channel: 'Facebook', product: 'humantay', contentType: 'Imagen', owner: 'Diego Quispe', status: 'Publicado', copy: 'La gema turquesa de Cusco te espera. ⛰️ Laguna Humantay a 4200msnm.', designUrl: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800', publishUrl: 'https://facebook.com/posts/1234' },
-  { id: 'post-3', publishDate: '2026-06-18', channel: 'TikTok', product: 'camino-inca', contentType: 'Reel', owner: 'Sofía Condori', status: 'Programado', copy: 'Lo que nadie te cuenta de caminar 4 días por el Camino Inca 🥾🎒 #trekking', designUrl: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?w=800', publishUrl: '' },
-  { id: 'post-4', publishDate: '2026-06-19', channel: 'YouTube', product: 'machu-picchu', contentType: 'Video', owner: 'Carlos Vega', status: 'Revisión', copy: 'Guía Completa para Viajar a Machu Picchu en 2026: Entradas, horarios y tips.', designUrl: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800', publishUrl: '' },
-  { id: 'post-5', publishDate: '2026-06-20', channel: 'Blog', product: 'valle-sagrado', contentType: 'Artículo', owner: 'Mariana Flores', status: 'Diseño', copy: '5 templos poco conocidos en el Valle Sagrado de los Incas.', designUrl: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?w=800', publishUrl: '' },
-  { id: 'post-6', publishDate: '2026-06-22', channel: 'WhatsApp', product: 'city-tour', contentType: 'Historia', owner: 'Alejandro Ramos', status: 'Idea', copy: 'Oferta flash: Cusco City Tour 2x1 solo por hoy 🌟', designUrl: '', publishUrl: '' },
-  { id: 'post-7', publishDate: '2026-06-02', channel: 'Instagram', product: 'humantay', contentType: 'Reel', owner: 'Mariana Flores', status: 'Publicado', copy: 'Caminando hacia el cielo en Humantay 🩵❄️', designUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800', publishUrl: 'https://instagram.com/reel/humantay' },
-  { id: 'post-8', publishDate: '2026-06-05', channel: 'TikTok', product: 'machu-picchu', contentType: 'Reel', owner: 'Mariana Flores', status: 'Publicado', copy: 'POV: Llegas a la Puerta del Sol (Intipunku) 🚪✨', designUrl: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800', publishUrl: 'https://tiktok.com/@kommo/reel/1' },
-  { id: 'post-9', publishDate: '2026-06-08', channel: 'Facebook', product: 'machu-picchu', contentType: 'Imagen', owner: 'Mariana Flores', status: 'Publicado', copy: '¡Machu Picchu te espera en esta temporada seca! Reserva con anticipación.', designUrl: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800', publishUrl: 'https://facebook.com/machu' },
-  { id: 'post-10', publishDate: '2026-06-10', channel: 'Instagram', product: 'camino-inca', contentType: 'Imagen', owner: 'Diego Quispe', status: 'Publicado', copy: 'Paisajes que roban el aliento. Camino Inca 2026.', designUrl: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?w=800', publishUrl: 'https://instagram.com/p/inca' },
-  { id: 'post-11', publishDate: '2026-06-11', channel: 'YouTube', product: 'humantay', contentType: 'Video', owner: 'Sofía Condori', status: 'Publicado', copy: 'El trekking más desafiante de un día en Cusco: Laguna Humantay.', designUrl: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800', publishUrl: 'https://youtube.com/watch?v=humantay' },
-  { id: 'post-12', publishDate: '2026-06-12', channel: 'Instagram', product: 'city-tour', contentType: 'Imagen', owner: 'Mariana Flores', status: 'Publicado', copy: 'Explorando las calles de piedra del Barrio de San Blas 🧱🚶', designUrl: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800', publishUrl: 'https://instagram.com/city' }
+  { id: 'post-1', publishDate: '2026-06-15', channel: 'Instagram', product: 'machu-picchu', contentType: 'Reel', owner: 'col-2', status: 'Publicado', copy: '¿Listo para ver el amanecer en Machu Picchu? 🌅 Reserva tu tour hoy.', designUrl: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800', publishUrl: 'https://instagram.com/reel/1234' },
+  { id: 'post-2', publishDate: '2026-06-16', channel: 'Facebook', product: 'humantay', contentType: 'Imagen', owner: 'col-3', status: 'Publicado', copy: 'La gema turquesa de Cusco te espera. ⛰️ Laguna Humantay a 4200msnm.', designUrl: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800', publishUrl: 'https://facebook.com/posts/1234' },
+  { id: 'post-3', publishDate: '2026-06-18', channel: 'TikTok', product: 'camino-inca', contentType: 'Reel', owner: 'col-4', status: 'Programado', copy: 'Lo que nadie te cuenta de caminar 4 días por el Camino Inca 🥾🎒 #trekking', designUrl: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?w=800', publishUrl: '' },
+  { id: 'post-4', publishDate: '2026-06-19', channel: 'YouTube', product: 'machu-picchu', contentType: 'Video', owner: 'col-5', status: 'Revisión', copy: 'Guía Completa para Viajar a Machu Picchu en 2026: Entradas, horarios y tips.', designUrl: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800', publishUrl: '' },
+  { id: 'post-5', publishDate: '2026-06-20', channel: 'Blog', product: 'valle-sagrado', contentType: 'Artículo', owner: 'col-2', status: 'Diseño', copy: '5 templos poco conocidos en el Valle Sagrado de los Incas.', designUrl: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?w=800', publishUrl: '' },
+  { id: 'post-6', publishDate: '2026-06-22', channel: 'WhatsApp', product: 'city-tour', contentType: 'Historia', owner: 'col-1', status: 'Idea', copy: 'Oferta flash: Cusco City Tour 2x1 solo por hoy 🌟', designUrl: '', publishUrl: '' },
+  { id: 'post-7', publishDate: '2026-06-02', channel: 'Instagram', product: 'humantay', contentType: 'Reel', owner: 'col-2', status: 'Publicado', copy: 'Caminando hacia el cielo en Humantay 🩵❄️', designUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800', publishUrl: 'https://instagram.com/reel/humantay' },
+  { id: 'post-8', publishDate: '2026-06-05', channel: 'TikTok', product: 'machu-picchu', contentType: 'Reel', owner: 'col-2', status: 'Publicado', copy: 'POV: Llegas a la Puerta del Sol (Intipunku) 🚪✨', designUrl: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800', publishUrl: 'https://tiktok.com/@kommo/reel/1' },
+  { id: 'post-9', publishDate: '2026-06-08', channel: 'Facebook', product: 'machu-picchu', contentType: 'Imagen', owner: 'col-2', status: 'Publicado', copy: '¡Machu Picchu te espera en esta temporada seca! Reserva con anticipación.', designUrl: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800', publishUrl: 'https://facebook.com/machu' },
+  { id: 'post-10', publishDate: '2026-06-10', channel: 'Instagram', product: 'camino-inca', contentType: 'Imagen', owner: 'col-3', status: 'Publicado', copy: 'Paisajes que roban el aliento. Camino Inca 2026.', designUrl: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?w=800', publishUrl: 'https://instagram.com/p/inca' },
+  { id: 'post-11', publishDate: '2026-06-11', channel: 'YouTube', product: 'humantay', contentType: 'Video', owner: 'col-4', status: 'Publicado', copy: 'El trekking más desafiante de un día en Cusco: Laguna Humantay.', designUrl: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800', publishUrl: 'https://youtube.com/watch?v=humantay' },
+  { id: 'post-12', publishDate: '2026-06-12', channel: 'Instagram', product: 'city-tour', contentType: 'Imagen', owner: 'col-2', status: 'Publicado', copy: 'Explorando las calles de piedra del Barrio de San Blas 🧱🚶', designUrl: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800', publishUrl: 'https://instagram.com/city' }
 ];
 
 const initialProductions = [
@@ -62,7 +64,7 @@ const initialAdCampaigns = [
     platform: 'Meta Ads',
     objective: 'Ventas',
     budget: 3500,
-    owner: 'Alejandro Ramos',
+    owner: 'col-1',
     segmentation: {
       name: 'Público Internacional Aventura',
       country: 'Estados Unidos, Canadá, España',
@@ -118,7 +120,7 @@ const initialAdCampaigns = [
     platform: 'Google Ads',
     objective: 'Leads',
     budget: 4000,
-    owner: 'Alejandro Ramos',
+    owner: 'col-1',
     segmentation: {
       name: 'Búsquedas de Alta Intención Compra',
       country: 'Reino Unido, Australia, Alemania',
@@ -163,7 +165,7 @@ const initialAdCampaigns = [
     platform: 'TikTok Ads',
     objective: 'Conversaciones',
     budget: 1500,
-    owner: 'Mariana Flores',
+    owner: 'col-2',
     segmentation: {
       name: 'Viajeros Jóvenes Latam',
       country: 'Chile, Colombia, México, Argentina',
@@ -210,7 +212,7 @@ const initialAssets = [
     type: 'Logos', 
     product: 'city-tour', 
     date: '2026-01-02', 
-    author: 'Diego Quispe', 
+    author: 'col-3',
     url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200',
     hypothesis: 'El logo limpio transmite modernidad y confianza técnica para agencias corporativas.',
     targetSegment: 'Clientes Corporativos B2B / Agencias Afiliadas'
@@ -221,7 +223,7 @@ const initialAssets = [
     type: 'Fotos', 
     product: 'machu-picchu', 
     date: '2026-05-12', 
-    author: 'Carlos Vega', 
+    author: 'col-5',
     url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800',
     hypothesis: 'Mostrar el santuario sin aglomeraciones a primera hora apela al deseo de exclusividad y paz.',
     targetSegment: 'Viajeros de Lujo / Buscadores de Experiencias Premium'
@@ -232,7 +234,7 @@ const initialAssets = [
     type: 'Videos', 
     product: 'humantay', 
     date: '2026-06-15', 
-    author: 'Carlos Vega', 
+    author: 'col-5',
     url: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800',
     hypothesis: 'La escala de la laguna turquesa vista desde arriba incrementa el CTR por su impacto visual y sensación de aventura.',
     targetSegment: 'Jóvenes Aventureros / Mochileros / Amantes del Trekking'
@@ -243,7 +245,7 @@ const initialAssets = [
     type: 'Plantillas', 
     product: 'city-tour', 
     date: '2026-03-10', 
-    author: 'Diego Quispe', 
+    author: 'col-3',
     url: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800',
     hypothesis: 'Diseño tipo "flash sale" con colores de alto contraste para fomentar la compra impulsiva rápida.',
     targetSegment: 'Viajeros Locales / Compradores de Último Minuto'
@@ -254,7 +256,7 @@ const initialAssets = [
     type: 'Diseños', 
     product: 'camino-inca', 
     date: '2026-06-11', 
-    author: 'Diego Quispe', 
+    author: 'col-3',
     url: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?w=800',
     hypothesis: 'Los mapas ilustrativos ayudan a visualizar el recorrido diario, reduciendo la fricción informativa y la duda sobre el esfuerzo físico.',
     targetSegment: 'Trekking Internacional / Adultos Activos 30-55 años'
@@ -265,7 +267,7 @@ const initialAssets = [
     type: 'Audios', 
     product: 'valle-sagrado', 
     date: '2026-02-15', 
-    author: 'Alejandro Ramos', 
+    author: 'col-1', 
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
     hypothesis: 'El uso de instrumentos autóctonos como la quena y zampoña en reels genera una conexión emocional inmediata con la cultura andina.',
     targetSegment: 'Turistas Culturales / Apasionados de la Antropología e Historia'
@@ -282,6 +284,11 @@ export const MarketingProvider = ({ children }) => {
   const [collaborators, setCollaborators] = useState(() => {
     const saved = localStorage.getItem('erp_marketing_collaborators');
     return saved ? JSON.parse(saved) : initialCollaborators;
+  });
+
+  // Who is "using" the system right now — a lightweight stand-in for real auth, used to stamp createdBy/updatedBy
+  const [currentUserId, setCurrentUserId] = useState(() => {
+    return localStorage.getItem('erp_marketing_current_user') || initialCollaborators[0]?.id || '';
   });
 
   const [annualPlans, setAnnualPlans] = useState(() => {
@@ -342,6 +349,10 @@ export const MarketingProvider = ({ children }) => {
   }, [collaborators]);
 
   useEffect(() => {
+    localStorage.setItem('erp_marketing_current_user', currentUserId);
+  }, [currentUserId]);
+
+  useEffect(() => {
     localStorage.setItem('erp_marketing_annual_plans', JSON.stringify(annualPlans));
   }, [annualPlans]);
 
@@ -371,18 +382,32 @@ export const MarketingProvider = ({ children }) => {
 
   // CRUD Operations
 
+  // Stamps who/when for every write, since nothing here goes through a real backend with request-level auth
+  const stampCreate = (record) => ({
+    ...record,
+    createdAt: new Date().toISOString(),
+    createdBy: currentUserId,
+    updatedAt: new Date().toISOString(),
+    updatedBy: currentUserId
+  });
+  const stampUpdate = (record) => ({
+    ...record,
+    updatedAt: new Date().toISOString(),
+    updatedBy: currentUserId
+  });
+
   // Annual Plan
   const updateAnnualPlan = (updatedPlan) => {
-    setAnnualPlans(prev => prev.map(p => p.id === updatedPlan.id ? updatedPlan : p));
+    setAnnualPlans(prev => prev.map(p => p.id === updatedPlan.id ? stampUpdate(updatedPlan) : p));
   };
 
   // Campaigns
   const addCampaign = (campaign) => {
-    const newCampaign = { ...campaign, id: `camp-${Date.now()}` };
+    const newCampaign = stampCreate({ ...campaign, id: `camp-${Date.now()}` });
     setCampaigns(prev => [newCampaign, ...prev]);
   };
   const updateCampaign = (updatedCampaign) => {
-    setCampaigns(prev => prev.map(c => c.id === updatedCampaign.id ? updatedCampaign : c));
+    setCampaigns(prev => prev.map(c => c.id === updatedCampaign.id ? stampUpdate(updatedCampaign) : c));
   };
   const deleteCampaign = (id) => {
     setCampaigns(prev => prev.filter(c => c.id !== id));
@@ -390,11 +415,11 @@ export const MarketingProvider = ({ children }) => {
 
   // Organic Content
   const addContent = (content) => {
-    const newContent = { ...content, id: `post-${Date.now()}` };
+    const newContent = stampCreate({ planCampaignId: null, ...content, id: `post-${Date.now()}` });
     setContentCalendar(prev => [newContent, ...prev]);
   };
   const updateContent = (updatedContent) => {
-    setContentCalendar(prev => prev.map(c => c.id === updatedContent.id ? updatedContent : c));
+    setContentCalendar(prev => prev.map(c => c.id === updatedContent.id ? stampUpdate(updatedContent) : c));
   };
   const deleteContent = (id) => {
     setContentCalendar(prev => prev.filter(c => c.id !== id));
@@ -402,11 +427,11 @@ export const MarketingProvider = ({ children }) => {
 
   // Productions
   const addProduction = (prod) => {
-    const newProd = { ...prod, id: `prod-${Date.now()}` };
+    const newProd = stampCreate({ planCampaignId: null, ...prod, id: `prod-${Date.now()}` });
     setProductions(prev => [newProd, ...prev]);
   };
   const updateProduction = (updatedProd) => {
-    setProductions(prev => prev.map(p => p.id === updatedProd.id ? updatedProd : p));
+    setProductions(prev => prev.map(p => p.id === updatedProd.id ? stampUpdate(updatedProd) : p));
   };
   const deleteProduction = (id) => {
     setProductions(prev => prev.filter(p => p.id !== id));
@@ -415,18 +440,19 @@ export const MarketingProvider = ({ children }) => {
   // Publicidad Digital (Ad Campaigns + Segmentations + Creatives + Results)
   const addAdCampaign = (adCamp) => {
     const results = adCamp.results || { impressions: 0, reach: 0, clicks: 0, conversations: 0, leads: 0, purchases: 0, spent: 0, revenue: 0 };
-    const newAdCamp = {
+    const newAdCamp = stampCreate({
+      planCampaignId: null,
       ...adCamp,
       id: `ad-camp-${Date.now()}`,
       segmentation: adCamp.segmentation || { name: 'Público Amplio', country: 'Perú', ageRange: '18-65', gender: 'Todos', language: 'Español', audienceType: 'Amplia', jsonConfig: '{}' },
       creatives: adCamp.creatives || [],
       results,
       resultsHistory: adCamp.resultsHistory || [{ date: new Date().toISOString().split('T')[0], ...results }]
-    };
+    });
     setAdsCampaigns(prev => [newAdCamp, ...prev]);
   };
   const updateAdCampaign = (updatedAdCamp) => {
-    setAdsCampaigns(prev => prev.map(a => a.id === updatedAdCamp.id ? updatedAdCamp : a));
+    setAdsCampaigns(prev => prev.map(a => a.id === updatedAdCamp.id ? stampUpdate(updatedAdCamp) : a));
   };
   const deleteAdCampaign = (id) => {
     setAdsCampaigns(prev => prev.filter(a => a.id !== id));
@@ -438,17 +464,17 @@ export const MarketingProvider = ({ children }) => {
     setAdsCampaigns(prev => prev.map(c => {
       if (c.id !== campaignId) return c;
       const history = (c.resultsHistory || []).filter(h => h.date !== snapshot.date);
-      return { ...c, results, resultsHistory: [...history, snapshot] };
+      return stampUpdate({ ...c, results, resultsHistory: [...history, snapshot] });
     }));
   };
 
   // Collaborators
   const addCollaborator = (col) => {
-    const newCol = { ...col, id: `col-${Date.now()}` };
+    const newCol = stampCreate({ ...col, id: `col-${Date.now()}` });
     setCollaborators(prev => [newCol, ...prev]);
   };
   const updateCollaborator = (updatedCol) => {
-    setCollaborators(prev => prev.map(c => c.id === updatedCol.id ? updatedCol : c));
+    setCollaborators(prev => prev.map(c => c.id === updatedCol.id ? stampUpdate(updatedCol) : c));
   };
   const deleteCollaborator = (id) => {
     setCollaborators(prev => prev.filter(c => c.id !== id));
@@ -456,11 +482,24 @@ export const MarketingProvider = ({ children }) => {
 
   // Assets
   const addAsset = (asset) => {
-    const newAsset = { ...asset, id: `as-${Date.now()}` };
+    const newAsset = stampCreate({ ...asset, id: `as-${Date.now()}` });
     setAssets(prev => [newAsset, ...prev]);
   };
   const deleteAsset = (id) => {
     setAssets(prev => prev.filter(a => a.id !== id));
+  };
+
+  // Products
+  const addProduct = (product) => {
+    const id = product.name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const newProduct = stampCreate({ category: 'Cultural', active: true, ...product, id });
+    setProducts(prev => [...prev, newProduct]);
+  };
+  const updateProduct = (updatedProduct) => {
+    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? stampUpdate(updatedProduct) : p));
+  };
+  const deleteProduct = (id) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
   };
 
   // Dynamic integration metrics helpers
@@ -497,13 +536,18 @@ export const MarketingProvider = ({ children }) => {
     };
   };
 
+  // Resolves a collaborator id to its display name — every "responsable" field stores the id, never the name
+  const getCollaboratorName = (collaboratorId) => {
+    return collaborators.find(c => c.id === collaboratorId)?.name || collaboratorId || '—';
+  };
+
   // Helper for team member compliance calculations
-  const getCollaboratorCompliance = (collaboratorName) => {
-    const col = collaborators.find(c => c.name === collaboratorName);
+  const getCollaboratorCompliance = (collaboratorId) => {
+    const col = collaborators.find(c => c.id === collaboratorId);
     if (!col) return { posts: 0, reels: 0, videos: 0, totalTarget: 0, totalDone: 0, rate: 0 };
 
-    const publishedContent = contentCalendar.filter(post => 
-      post.owner === collaboratorName && post.status === 'Publicado'
+    const publishedContent = contentCalendar.filter(post =>
+      post.owner === collaboratorId && post.status === 'Publicado'
     );
 
     const postsDone = publishedContent.filter(p => p.contentType === 'Imagen' || p.contentType === 'Carrusel' || p.contentType === 'Historia' || p.contentType === 'Artículo').length;
@@ -534,6 +578,7 @@ export const MarketingProvider = ({ children }) => {
     localStorage.clear();
     setProducts(initialProducts);
     setCollaborators(initialCollaborators);
+    setCurrentUserId(initialCollaborators[0]?.id || '');
     setAnnualPlans(initialAnnualPlans);
     setCampaigns(initialCampaigns);
     setContentCalendar(initialContentCalendar);
@@ -550,8 +595,12 @@ export const MarketingProvider = ({ children }) => {
   return (
     <MarketingContext.Provider value={{
       products,
-      setProducts,
+      addProduct,
+      updateProduct,
+      deleteProduct,
       collaborators,
+      currentUserId,
+      setCurrentUserId,
       annualPlans,
       updateAnnualPlan,
       campaigns,
@@ -583,6 +632,7 @@ export const MarketingProvider = ({ children }) => {
       setIntegrationSettings,
       getProductMetrics,
       getCollaboratorCompliance,
+      getCollaboratorName,
       resetToDefault
     }}>
       {children}
