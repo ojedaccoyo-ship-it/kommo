@@ -1,17 +1,18 @@
 import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Calendar, 
-  List, 
-  ExternalLink, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  List,
+  ExternalLink,
   Paperclip,
   CheckCircle,
   Eye,
   Upload,
-  FileText
+  FileText,
+  Download
 } from 'lucide-react';
 
 export const CalendarioContenido = () => {
@@ -101,6 +102,47 @@ export const CalendarioContenido = () => {
     setImportText('');
     setParsedPosts([]);
     setImportFileName('');
+  };
+
+  const downloadImportTemplate = () => {
+    const productList = products.map(p => p.id).join(', ') || 'sin-productos-registrados';
+    const ownerList = collaborators.map(c => c.name).join(', ') || 'sin-responsables-registrados';
+    const today = new Date();
+    const exampleDate = (offsetDays) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() + offsetDays);
+      return d.toISOString().split('T')[0];
+    };
+    const firstProduct = products[0]?.id || 'machu-picchu';
+    const secondProduct = products[1]?.id || firstProduct;
+    const firstOwner = collaborators[0]?.name || 'Responsable';
+    const secondOwner = collaborators[1]?.name || firstOwner;
+
+    const lines = [
+      '# Plantilla para importar el Calendario de Contenido',
+      '# Descarga, edita en cualquier editor de texto o Excel, guarda y vuelve a subirla en "Subir Archivo CSV".',
+      '#',
+      '# Formato: Fecha (AAAA-MM-DD) | Canal | Tipo de Contenido | Producto | Copy | Responsable',
+      '# Una publicación por línea. Las líneas que empiezan con # se ignoran al importar.',
+      '#',
+      '# CANALES VÁLIDOS: Facebook, Instagram, TikTok, YouTube, Blog, WhatsApp',
+      '# TIPOS VÁLIDOS: Imagen, Reel, Video, Carrusel, Historia, Artículo',
+      `# PRODUCTOS VÁLIDOS (escribe exactamente así): ${productList}`,
+      `# RESPONSABLES VÁLIDOS (escribe exactamente así): ${ownerList}`,
+      '#',
+      '# --- Reemplaza o duplica estas líneas de ejemplo ---',
+      `${exampleDate(2)}|Instagram|Reel|${firstProduct}|Escribe aquí el copy de la publicación|${firstOwner}`,
+      `${exampleDate(4)}|Facebook|Imagen|${secondProduct}|Escribe aquí el copy de la publicación|${secondOwner}`,
+      `${exampleDate(6)}|TikTok|Reel|${firstProduct}|Escribe aquí el copy de la publicación|${firstOwner}`
+    ];
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_calendario_contenido.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const exportCalendar = () => {
@@ -580,10 +622,15 @@ export const CalendarioContenido = () => {
             </div>
             <form onSubmit={handleImportSubmit}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {/* Mode Toggle */}
-                <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', padding: '2px', alignSelf: 'flex-start' }}>
-                  <button type="button" onClick={() => setImportMode('text')} className={`btn btn-sm ${importMode === 'text' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }}>Pegar Texto</button>
-                  <button type="button" onClick={() => setImportMode('file')} className={`btn btn-sm ${importMode === 'file' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }}>Subir Archivo CSV</button>
+                {/* Mode Toggle + Template download */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', padding: '2px' }}>
+                    <button type="button" onClick={() => setImportMode('text')} className={`btn btn-sm ${importMode === 'text' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }}>Pegar Texto</button>
+                    <button type="button" onClick={() => setImportMode('file')} className={`btn btn-sm ${importMode === 'file' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }}>Subir Archivo CSV</button>
+                  </div>
+                  <button type="button" onClick={downloadImportTemplate} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }} title="Descarga un archivo .txt con el formato y ejemplos, listo para editar y volver a subir">
+                    <Download size={12} /> Descargar Plantilla
+                  </button>
                 </div>
 
                 {/* Format Reference */}
