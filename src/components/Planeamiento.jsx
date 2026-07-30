@@ -1,14 +1,19 @@
 import React, { useContext, useState } from 'react';
 import { MarketingContext } from '../context/MarketingContext';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Compass, 
-  DollarSign, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Compass,
+  DollarSign,
   Calendar,
-  AlertCircle 
+  AlertCircle
 } from 'lucide-react';
+
+const CAMPAIGN_TYPES = ['Pagada', 'Orgánica', 'Mixta', 'Relaciones Públicas', 'Email Marketing', 'Alianzas'];
+const OBJECTIVES = ['Leads', 'Conversaciones', 'Ventas', 'Tráfico', 'Branding'];
+const PLATFORM_OPTIONS = ['Meta Ads', 'Google Ads', 'TikTok Ads', 'Instagram', 'Facebook', 'YouTube', 'Blog', 'WhatsApp', 'Email', 'Prensa / PR'];
+const OTHER_PRODUCT = 'otro';
 
 export const Planeamiento = () => {
   const { 
@@ -33,10 +38,14 @@ export const Planeamiento = () => {
     id: '',
     name: '',
     product: '',
+    productLabel: '',
     season: '',
     startDate: '',
     endDate: '',
     status: 'Borrador',
+    type: 'Pagada',
+    objective: 'Leads',
+    platforms: [],
     budget: 0,
     owner: ''
   });
@@ -70,10 +79,14 @@ export const Planeamiento = () => {
       id: '',
       name: '',
       product: products[0]?.id || '',
+      productLabel: '',
       season: 'Temporada Alta',
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date().toISOString().split('T')[0],
       status: 'Borrador',
+      type: 'Pagada',
+      objective: 'Leads',
+      platforms: [],
       budget: 1000,
       owner: collaborators[0]?.name || ''
     });
@@ -82,7 +95,8 @@ export const Planeamiento = () => {
 
   const openCampEdit = (camp) => {
     setEditingCamp(camp);
-    setCampForm({ ...camp });
+    // Merge with defaults so campaigns created before these fields existed still open cleanly
+    setCampForm({ productLabel: '', type: 'Pagada', objective: 'Leads', platforms: [], ...camp });
     setIsCampModalOpen(true);
   };
 
@@ -94,6 +108,20 @@ export const Planeamiento = () => {
       addCampaign(campForm);
     }
     setIsCampModalOpen(false);
+  };
+
+  const togglePlatform = (platform) => {
+    setCampForm(prev => ({
+      ...prev,
+      platforms: prev.platforms.includes(platform)
+        ? prev.platforms.filter(p => p !== platform)
+        : [...prev.platforms, platform]
+    }));
+  };
+
+  const productDisplayName = (camp) => {
+    if (camp.product === OTHER_PRODUCT) return camp.productLabel || 'Otro';
+    return products.find(p => p.id === camp.product)?.name || camp.product;
   };
 
   const getStatusBadgeClass = (status) => {
@@ -168,7 +196,9 @@ export const Planeamiento = () => {
             <thead>
               <tr>
                 <th>Campaña</th>
+                <th>Tipo</th>
                 <th>Producto Turístico</th>
+                <th>Plataformas</th>
                 <th>Temporada</th>
                 <th>Cronograma</th>
                 <th>Presupuesto</th>
@@ -179,14 +209,19 @@ export const Planeamiento = () => {
             </thead>
             <tbody>
               {filteredCampaigns.map(camp => {
-                const prod = products.find(p => p.id === camp.product);
                 return (
                   <tr key={camp.id}>
                     <td>
                       <strong style={{ color: 'var(--text-primary)' }}>{camp.name}</strong>
                     </td>
                     <td>
-                      <span className="badge badge-info">{prod ? prod.name : camp.product}</span>
+                      <span className="badge badge-purple">{camp.type || 'Pagada'}</span>
+                    </td>
+                    <td>
+                      <span className="badge badge-info">{productDisplayName(camp)}</span>
+                    </td>
+                    <td style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxWidth: '160px' }}>
+                      {(camp.platforms || []).length > 0 ? camp.platforms.join(', ') : '—'}
                     </td>
                     <td>{camp.season}</td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -323,28 +358,101 @@ export const Planeamiento = () => {
                 </div>
                 <div className="grid-cols-2">
                   <div>
+                    <label className="label">Tipo de Campaña</label>
+                    <select
+                      value={campForm.type}
+                      onChange={(e) => setCampForm({...campForm, type: e.target.value})}
+                      className="input"
+                      required
+                    >
+                      {CAMPAIGN_TYPES.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Objetivo de Campaña</label>
+                    <select
+                      value={campForm.objective}
+                      onChange={(e) => setCampForm({...campForm, objective: e.target.value})}
+                      className="input"
+                      required
+                    >
+                      {OBJECTIVES.map(o => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid-cols-2">
+                  <div>
                     <label className="label">Producto Relacionado</label>
-                    <select 
-                      value={campForm.product} 
-                      onChange={(e) => setCampForm({...campForm, product: e.target.value})} 
+                    <select
+                      value={campForm.product}
+                      onChange={(e) => setCampForm({...campForm, product: e.target.value})}
                       className="input"
                       required
                     >
                       {products.map(p => (
                         <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
+                      <option value={OTHER_PRODUCT}>Otro (especificar)</option>
                     </select>
+                    {campForm.product === OTHER_PRODUCT && (
+                      <input
+                        type="text"
+                        value={campForm.productLabel}
+                        onChange={(e) => setCampForm({...campForm, productLabel: e.target.value})}
+                        className="input"
+                        placeholder="Ej. Toda la marca / Nuevo producto"
+                        style={{ marginTop: '0.5rem' }}
+                        required
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="label">Temporada</label>
-                    <input 
-                      type="text" 
-                      value={campForm.season} 
-                      onChange={(e) => setCampForm({...campForm, season: e.target.value})} 
-                      className="input" 
+                    <input
+                      type="text"
+                      value={campForm.season}
+                      onChange={(e) => setCampForm({...campForm, season: e.target.value})}
+                      className="input"
                       placeholder="Ej. Temporada Alta"
                       required
                     />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Plataformas</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {PLATFORM_OPTIONS.map(platform => {
+                      const checked = campForm.platforms.includes(platform);
+                      return (
+                        <label
+                          key={platform}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.4rem 0.7rem',
+                            borderRadius: 'var(--radius-full)',
+                            border: `1px solid ${checked ? 'var(--color-primary)' : 'var(--border-light)'}`,
+                            backgroundColor: checked ? 'var(--color-primary-soft)' : 'var(--bg-input)',
+                            color: checked ? 'var(--color-primary)' : 'var(--text-secondary)',
+                            fontSize: '0.775rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => togglePlatform(platform)}
+                            style={{ margin: 0 }}
+                          />
+                          {platform}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="grid-cols-2">
